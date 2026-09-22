@@ -111,6 +111,11 @@ namespace DelayReporter.Core.Movement
             for (int i = pairs; i < codes.Count; i++)
                 events.Add(new DelayEvent(codes[i], 0));
 
+            // Durations with no code still happened; keep the minutes under an empty code
+            // (resolved as unmapped) rather than dropping them from the flight's total.
+            for (int i = pairs; i < durations.Count; i++)
+                events.Add(new DelayEvent(string.Empty, durations[i]));
+
             return new DelayParseResult(events, raw, warning);
         }
 

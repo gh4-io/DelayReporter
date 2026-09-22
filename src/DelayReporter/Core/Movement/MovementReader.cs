@@ -71,7 +71,7 @@ namespace DelayReporter.Core.Movement
             {
                 if (IsFooterRow(grid, r, map)) continue;
 
-                MovementRow? row = ReadRow(grid, r, map);
+                MovementRow? row = ReadRow(grid, r, map, sheet);
                 if (row != null) sheet.Rows.Add(row);
             }
 
@@ -109,10 +109,19 @@ namespace DelayReporter.Core.Movement
 
             // Split on a spaced dash so a date written as 2026-09-14 is not torn apart.
             int dash = text.IndexOf(" - ", StringComparison.Ordinal);
-            if (dash < 0) return;
+            if (dash < 0)
+            {
+                sheet.Warnings.Add($"Could not read the period line \"{text}\"; expected \"start - end\".");
+                return;
+            }
 
             sheet.PeriodStart = ParseDateTime(text.Substring(0, dash));
             sheet.PeriodEnd = ParseDateTime(text.Substring(dash + 3));
+
+            if (sheet.PeriodStart == null)
+                sheet.Warnings.Add($"Could not parse the period start \"{text.Substring(0, dash).Trim()}\".");
+            if (sheet.PeriodEnd == null)
+                sheet.Warnings.Add($"Could not parse the period end \"{text.Substring(dash + 3).Trim()}\".");
         }
 
         private static DateTime? ParseDateTime(string text)
@@ -154,7 +163,7 @@ namespace DelayReporter.Core.Movement
             return flight.Length == 0 && date.Length == 0;
         }
 
-        private static MovementRow? ReadRow(CellGrid grid, int row, IReadOnlyDictionary<string, int> map)
+        private static MovementRow? ReadRow(CellGrid grid, int row, IReadOnlyDictionary<string, int> map, MovementSheet sheet)
         {
             var movement = new MovementRow
             {
@@ -172,11 +181,18 @@ namespace DelayReporter.Core.Movement
             };
 
             movement.Date = ParseDate(movement.DateText);
+            if (movement.Date == null && movement.DateText.Length > 0)
+                sheet.Warnings.Add($"Row {movement.SourceRowNumber} ({movement.FlightNumber}): could not parse date \"{movement.DateText}\".");
 
             if (ClockTime.TryParse(movement.ScheduledText, out ClockTime scheduled))
                 movement.Scheduled = scheduled;
+            else if (movement.ScheduledText.Length > 0)
+                sheet.Warnings.Add($"Row {movement.SourceRowNumber} ({movement.FlightNumber}): could not parse STD \"{movement.ScheduledText}\".");
+
             if (ClockTime.TryParse(movement.ActualText, out ClockTime actual))
                 movement.Actual = actual;
+            else if (movement.ActualText.Length > 0)
+                sheet.Warnings.Add($"Row {movement.SourceRowNumber} ({movement.FlightNumber}): could not parse ATD \"{movement.ActualText}\".");
 
             movement.Delay = DelayCodeParser.Parse(Value(grid, row, map, ColDepartureDelay));
 

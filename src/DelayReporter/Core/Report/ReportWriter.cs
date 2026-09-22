@@ -123,7 +123,10 @@ namespace DelayReporter.Core.Report
             var metrics = new List<KeyValuePair<string, string>>
             {
                 Metric(model.Station + " departures", model.StationDepartures),
+                Metric("Excluded by movement type", model.ExcludedByMovementType),
+                Metric("Excluded by filters", model.ExcludedByFilters),
                 Metric("With coded delay", model.FlightsWithCodedDelay),
+                Metric("Dropped, all codes excluded", model.FlightsDroppedAllCodesExcluded),
                 Metric("Flights reported", model.ReportedFlights),
                 Metric("Delay events", model.ReportedEvents),
                 new KeyValuePair<string, string>("Total coded delay", model.TotalCodedDelayText),
