@@ -76,7 +76,7 @@ namespace DelayReporter.Core.Spreadsheet
 
         public void Set(int row, int column, string? text, CellStyle style = CellStyle.Default)
         {
-            if (!Rows.TryGetValue(row, out Dictionary<int, Cell> cells))
+            if (!Rows.TryGetValue(row, out Dictionary<int, Cell>? cells))
             {
                 cells = new Dictionary<int, Cell>();
                 Rows[row] = cells;

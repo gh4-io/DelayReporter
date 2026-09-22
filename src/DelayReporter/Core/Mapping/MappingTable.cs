@@ -48,7 +48,7 @@ namespace DelayReporter.Core.Mapping
         public MappingEntry? Find(string? code)
         {
             if (string.IsNullOrWhiteSpace(code)) return null;
-            return _entries.TryGetValue(Normalize(code!), out MappingEntry entry) ? entry : null;
+            return _entries.TryGetValue(Normalize(code!), out MappingEntry? entry) ? entry : null;
         }
 
         public bool IsExcluded(string? code) => Find(code)?.Exclude == true;

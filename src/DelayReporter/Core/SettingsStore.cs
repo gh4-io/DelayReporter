@@ -70,15 +70,15 @@ namespace DelayReporter.Core
         }
 
         public string Get(string key, string fallback) =>
-            _values.TryGetValue(key, out string value) && value.Length > 0 ? value : fallback;
+            _values.TryGetValue(key, out string? value) && value.Length > 0 ? value : fallback;
 
         public int Get(string key, int fallback) =>
-            _values.TryGetValue(key, out string value) &&
+            _values.TryGetValue(key, out string? value) &&
             int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed)
                 ? parsed : fallback;
 
         public bool Get(string key, bool fallback) =>
-            _values.TryGetValue(key, out string value)
+            _values.TryGetValue(key, out string? value)
                 ? value.Equals("true", StringComparison.OrdinalIgnoreCase) || value == "1"
                 : fallback;
 

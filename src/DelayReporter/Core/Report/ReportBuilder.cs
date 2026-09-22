@@ -198,7 +198,7 @@ namespace DelayReporter.Core.Report
                 foreach (ReportDelayEvent e in flight.Events)
                 {
                     string key = MappingTable.Normalize(e.Code);
-                    if (!codes.TryGetValue(key, out CodeTally tally))
+                    if (!codes.TryGetValue(key, out CodeTally? tally))
                     {
                         tally = new CodeTally { Code = e.Code, Label = e.Label, IsUnmapped = e.IsUnmapped };
                         codes[key] = tally;
@@ -217,7 +217,7 @@ namespace DelayReporter.Core.Report
             foreach (ReportFlight flight in model.Flights)
             {
                 string key = flight.Operator.Length > 0 ? flight.Operator : "(none)";
-                if (!operators.TryGetValue(key, out OperatorTally tally))
+                if (!operators.TryGetValue(key, out OperatorTally? tally))
                 {
                     tally = new OperatorTally { Operator = key };
                     operators[key] = tally;
