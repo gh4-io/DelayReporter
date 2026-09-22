@@ -103,8 +103,10 @@ namespace DelayReporter
             {
                 _sheet = MovementReader.ReadFile(path);
             }
+            // A file that is not a readable zip surfaces as InvalidDataException, which is
+            // not an IOException; without it a damaged workbook reaches the crash handler.
             catch (Exception ex) when (ex is SpreadsheetFormatException || ex is IOException ||
-                                       ex is UnauthorizedAccessException)
+                                       ex is UnauthorizedAccessException || ex is InvalidDataException)
             {
                 _sheet = null;
                 _model = null;

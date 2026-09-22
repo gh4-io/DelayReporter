@@ -179,6 +179,104 @@ try {
         AssertEqual '1' $xml.worksheet.pageSetup.fitToWidth 'fitted to one page wide'
     }
     finally { $zip.Dispose() }
+
+    # ---- reading an XLSX ---------------------------------------------------
+    Write-Output ''
+    Write-Output '== reading an XLSX =='
+
+    # An exporter that streams its output cannot seek back to fill in an entry's size, so
+    # it writes the size in a trailing Zip64 data descriptor and marks the local header as
+    # needing version 4.5. Real movement sheets arrive written this way; Excel opens them
+    # and System.IO.Packaging does not, which is why the reader works over a plain zip.
+    Add-Type -TypeDefinition @'
+using System;
+using System.IO;
+public sealed class ForwardOnlyStream : Stream
+{
+    private readonly Stream _inner;
+    private long _written;
+    public ForwardOnlyStream(Stream inner) { _inner = inner; }
+    public override bool CanRead  { get { return false; } }
+    public override bool CanSeek  { get { return false; } }
+    public override bool CanWrite { get { return true; } }
+    public override long Length { get { return _written; } }
+    public override long Position { get { return _written; } set { throw new NotSupportedException(); } }
+    public override void Flush() { _inner.Flush(); }
+    public override int Read(byte[] b, int o, int c) { throw new NotSupportedException(); }
+    public override long Seek(long o, SeekOrigin r) { throw new NotSupportedException(); }
+    public override void SetLength(long v) { throw new NotSupportedException(); }
+    public override void Write(byte[] b, int o, int c) { _inner.Write(b, o, c); _written += c; }
+}
+'@
+    Add-Type -AssemblyName System.IO.Compression
+
+    $mainNs = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
+    $relNs = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+    $pkgNs = 'http://schemas.openxmlformats.org/package/2006/relationships'
+
+    # sharedStrings carries no indentation, the way Excel itself writes the part, and the
+    # worksheet is reached through a relative relationship target.
+    $parts = [ordered]@{
+        '[Content_Types].xml' =
+            "<?xml version=`"1.0`" encoding=`"UTF-8`"?><Types xmlns=`"http://schemas.openxmlformats.org/package/2006/content-types`"><Default Extension=`"rels`" ContentType=`"application/vnd.openxmlformats-package.relationships+xml`"/><Default Extension=`"xml`" ContentType=`"application/xml`"/></Types>"
+        '_rels/.rels' =
+            "<?xml version=`"1.0`" encoding=`"UTF-8`"?><Relationships xmlns=`"$pkgNs`"><Relationship Id=`"rId1`" Type=`"$relNs/officeDocument`" Target=`"xl/workbook.xml`"/></Relationships>"
+        'xl/workbook.xml' =
+            "<?xml version=`"1.0`" encoding=`"UTF-8`"?><workbook xmlns=`"$mainNs`" xmlns:r=`"$relNs`"><sheets><sheet name=`"Movements`" sheetId=`"1`" r:id=`"rId1`"/></sheets></workbook>"
+        'xl/_rels/workbook.xml.rels' =
+            "<?xml version=`"1.0`" encoding=`"UTF-8`"?><Relationships xmlns=`"$pkgNs`"><Relationship Id=`"rId1`" Type=`"$relNs/worksheet`" Target=`"worksheets/sheet1.xml`"/><Relationship Id=`"rId2`" Type=`"$relNs/sharedStrings`" Target=`"sharedStrings.xml`"/></Relationships>"
+        'xl/sharedStrings.xml' =
+            "<?xml version=`"1.0`" encoding=`"UTF-8`"?><sst xmlns=`"$mainNs`" count=`"2`" uniqueCount=`"2`"><si><t>ALPHA</t></si><si><t>BETA</t></si></sst>"
+        'xl/worksheets/sheet1.xml' =
+            "<?xml version=`"1.0`" encoding=`"UTF-8`"?><worksheet xmlns=`"$mainNs`"><sheetData><row r=`"1`"><c r=`"A1`" t=`"inlineStr`"><is><t>INLINE</t></is></c><c r=`"B1`" t=`"s`"><v>0</v></c><c r=`"C1`" t=`"s`"><v>1</v></c></row></sheetData></worksheet>"
+    }
+
+    $xlsxPath = Join-Path $temp 'streamed.xlsx'
+    $file = [IO.File]::Create($xlsxPath)
+    try {
+        $forward = New-Object ForwardOnlyStream($file)
+        $archive = New-Object IO.Compression.ZipArchive($forward, [IO.Compression.ZipArchiveMode]::Create, $true)
+        try {
+            foreach ($name in $parts.Keys) {
+                $entryStream = $archive.CreateEntry($name).Open()
+                $bytes = [Text.Encoding]::UTF8.GetBytes($parts[$name])
+                $entryStream.Write($bytes, 0, $bytes.Length)
+                $entryStream.Dispose()
+            }
+        }
+        finally { $archive.Dispose() }
+    }
+    finally { $file.Dispose() }
+
+    # ZipArchive streams the entries but still stamps them version 2.0, so the local
+    # headers are raised to 4.5 by hand to match what the real exporter writes.
+    $raw = [IO.File]::ReadAllBytes($xlsxPath)
+    $eocd = -1
+    for ($i = $raw.Length - 22; $i -ge 0; $i--) {
+        if ($raw[$i] -eq 0x50 -and $raw[$i + 1] -eq 0x4B -and
+            $raw[$i + 2] -eq 0x05 -and $raw[$i + 3] -eq 0x06) { $eocd = $i; break }
+    }
+    $entryCount = [BitConverter]::ToUInt16($raw, $eocd + 10)
+    $directory = [BitConverter]::ToUInt32($raw, $eocd + 16)
+    for ($e = 0; $e -lt $entryCount; $e++) {
+        $nameLength = [BitConverter]::ToUInt16($raw, $directory + 28)
+        $extraLength = [BitConverter]::ToUInt16($raw, $directory + 30)
+        $commentLength = [BitConverter]::ToUInt16($raw, $directory + 32)
+        $localHeader = [BitConverter]::ToUInt32($raw, $directory + 42)
+        [Array]::Copy([BitConverter]::GetBytes([uint16]45), 0, $raw, $localHeader + 4, 2)
+        $directory += 46 + $nameLength + $extraLength + $commentLength
+    }
+    [IO.File]::WriteAllBytes($xlsxPath, $raw)
+
+    # Bit 3 of the general purpose flag is what says "the size follows the data".
+    $flags = [BitConverter]::ToUInt16([IO.File]::ReadAllBytes($xlsxPath), 6)
+    Assert (($flags -band 0x8) -ne 0) 'the fixture is written with data descriptors'
+    Assert ([BitConverter]::ToUInt16([IO.File]::ReadAllBytes($xlsxPath), 4) -eq 45) 'and marked as needing Zip64'
+
+    $grid = [DelayReporter.Core.Spreadsheet.XlsxReader]::ReadFile($xlsxPath)
+    AssertEqual 'INLINE' ($grid.Cell(0, 0)) 'an inline string is read'
+    AssertEqual 'ALPHA' ($grid.Cell(0, 1)) 'a shared string is read from an unindented part'
+    AssertEqual 'BETA' ($grid.Cell(0, 2)) 'and so is the one after it'
 }
 finally {
     Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue

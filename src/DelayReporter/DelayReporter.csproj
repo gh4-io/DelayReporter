@@ -39,8 +39,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Both ship with Windows. System.IO.Packaging lives in WindowsBase, which UseWPF
-         already references; System.IO.Compression needs naming explicitly on net48. -->
+    <!-- Ships with Windows, but needs naming explicitly on net48. Reading and writing
+         both go through it, so Core depends on no part of the WPF stack. -->
     <Reference Include="System.IO.Compression" />
   </ItemGroup>
 
