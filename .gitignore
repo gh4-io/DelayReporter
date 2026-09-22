@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+dist/
+
+# Local development artefacts, including any real movement sheets
+.staging/
+*.user
+*.suo
+.vs/
+
+# Generated reports
+*-departure-delays-*.xlsx

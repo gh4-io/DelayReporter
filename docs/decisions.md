@@ -1,0 +1,100 @@
+# Design decisions
+
+## First repository release: v0.1.0
+
+The first publishable release starts at 0.1.0 with a single initial implementation. Real movement
+sheets and the delay code source document are retained outside this repository; only synthetic
+fixtures and the transcribed code table are included.
+
+## .NET Framework 4.8, and a hand-written XLSX writer
+
+The tool is passed around a station and run from wherever it lands. That argues for one small
+executable that needs no installer, no runtime and no administrator rights — the promise both
+sibling projects make. .NET Framework 4.8 is the only managed runtime that ships with Windows 10
+1903+ and Windows 11, so targeting it keeps the download around a megabyte and the prerequisites at
+none.
+
+Writing XLSX then has to be done by hand, because the mature Excel libraries are not available on
+that footing. ClosedXML pulls a chain of assemblies and its current releases target .NET Standard
+2.0 and later, so using it on net48 means pinning an unmaintained line; merging assemblies with
+ILRepack adds a fragile build step; EPPlus's licence excludes commercial use. Against roughly 1,500
+lines of writer, the deciding factor was that the report has exactly one layout. The writer is a
+bounded, single-purpose component, not an open-ended Excel library, and it is verified against a
+reference workbook.
+
+The reader uses System.IO.Packaging, which resolves relationships properly and was proven against
+real files. The writer does not: it emits a plain zip with explicit content types and
+relationships, so the output is exactly the bytes intended and can be diffed against a reference.
+Using the simpler mechanism on each side is deliberate, not an oversight.
+
+## One flight is one row
+
+An earlier layout drew each flight as a bordered block with its codes listed beneath. It printed
+well and read badly as a spreadsheet: sorting, filtering and freezing all operate on rows, and a
+block spanning several rows defeats them.
+
+So a flight is a single row, and its codes stack as lines within that row's Code, Reason and
+Duration cells. The report behaves like a spreadsheet and still prints as a document.
+
+The cost is that Excel cannot be left to wrap the text: if it reflowed the Reason cell, the codes
+and durations beside it would no longer line up. The writer therefore wraps the reason itself and
+pads the other two cells with blank lines, then computes the row height from the line count. That
+is the reason `TextWrap` exists and why row heights are explicit.
+
+## Positional pairing of codes and durations
+
+The delay cell packs N codes followed by N durations. Pairing them positionally is an assumption,
+so it was tested rather than trusted: across the development sample, every flight's coded durations
+summed exactly to its STD-to-ATD delay, including flights crossing midnight and one whose codes
+totalled 11:08. The report still shows both figures and flags disagreement, because the next file
+may not be so well behaved.
+
+## Exclusion drops events, not flights
+
+An excluded delay code removes that event; the flight keeps its remaining codes. A flight whose
+codes are all excluded leaves the report entirely. The alternative — dropping any flight touched by
+an excluded code — would hide delays the station does own behind one it does not.
+
+Excluded events are counted on the summary. An exclusion that quietly shrinks the report is a
+reporting error waiting to happen; a counted one is a decision.
+
+## Supplementary information is a prompt, not a flag
+
+66 of the 173 published codes require the station to record supplementary information, and the
+source document says what. Rather than marking those flights and leaving the reader to look the
+requirement up, the report pre-fills the Notes cell with the requirement itself. The workbook
+becomes a checklist of what is still owed rather than a record of what happened.
+
+## Nothing unmapped is fatal
+
+A delay code or aircraft type absent from the mapping files prints as written, is labelled
+`(unmapped)`, and is listed on the summary. A new code appearing in a future export must not stop a
+report being produced, and must not vanish from it either.
+
+## Codes are normalised, labels are not corrected
+
+The movement sheet zero-pads codes (`09`, `04`); the published list does not (`9`, `4`). Lookups
+normalise both sides. The labels themselves are transcribed verbatim from *Global Network Delay
+Codes v8.1*, including its own inconsistencies — one row's Network Domain reads `Air` where every
+comparable row reads `Air & Road`, and several labels carry the source's spelling. Correcting them
+in the seed would make the shipped file disagree with the document it claims to reproduce, and the
+user's own copy is the right place for local corrections.
+
+## Movement types are classified, not listed
+
+Ground runs and tows carry no departure, no load and no delay codes. Rather than hard-coding
+`T/GR` and `T/XL`, `ReportOptions.IsFlightType` tests the type's `/`-separated segments. An
+unfamiliar type in a future export is therefore included by default rather than silently dropped —
+the safer direction to fail in.
+
+## The station is a setting, checked against the file
+
+Which station a report covers is a decision, so it is a setting rather than inferred. But a wrong
+setting produces an empty report, which looks like a broken tool. The reader therefore detects the
+station that dominates the file and the report warns when the two disagree, naming both.
+
+## No continuous integration
+
+Neither sibling has CI, the build is Windows-only, and a workflow that cannot build a WPF
+application or open the resulting workbook would add ceremony without value. Verification is
+`tools/test-core.ps1`, `tools/check-repo.ps1`, and looking at the report.

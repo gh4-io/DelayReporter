@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+
+    <!--
+      .NET Framework 4.8 is the only managed runtime that ships with Windows 10 1903+
+      and Windows 11, so this runs on a clean machine with nothing installed and no
+      administrator rights. See docs/decisions.md.
+    -->
+    <TargetFramework>net48</TargetFramework>
+
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>DelayReporter</RootNamespace>
+    <AssemblyName>DelayReporter</AssemblyName>
+    <Version>0.1.0</Version>
+    <!-- Keep the release number stable while identifying every build, including builds without Git. -->
+    <BuildTimestamp Condition="'$(BuildTimestamp)' == ''">$([System.DateTime]::UtcNow.ToString('yyyyMMdd.HHmmss'))Z</BuildTimestamp>
+    <InformationalVersion>$(Version)+build.$(BuildTimestamp)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>Delay Reporter</Product>
+    <Company>Jason Grace</Company>
+    <Description>Parses movement sheets and reports coded departure delays as a printable workbook.</Description>
+    <Copyright>Jason Grace</Copyright>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <GenerateSupportedRuntime>false</GenerateSupportedRuntime>
+    <DebugType>embedded</DebugType>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Supplies the 4.8 reference assemblies, so no Visual Studio install is needed. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Both ship with Windows. System.IO.Packaging lives in WindowsBase, which UseWPF
+         already references; System.IO.Compression needs naming explicitly on net48. -->
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\delay-codes.csv" />
+    <EmbeddedResource Include="Resources\aircraft-types.csv" />
+  </ItemGroup>
+
+</Project>
