@@ -15,7 +15,7 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>DelayReporter</RootNamespace>
     <AssemblyName>DelayReporter</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <!-- Keep the release number stable while identifying every build, including builds without Git. -->
     <BuildTimestamp Condition="'$(BuildTimestamp)' == ''">$([System.DateTime]::UtcNow.ToString('yyyyMMdd.HHmmss'))Z</BuildTimestamp>
     <InformationalVersion>$(Version)+build.$(BuildTimestamp)</InformationalVersion>
@@ -47,6 +47,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\delay-codes.csv" />
     <EmbeddedResource Include="Resources\aircraft-types.csv" />
+    <EmbeddedResource Include="Resources\operators.csv" />
   </ItemGroup>
 
 </Project>

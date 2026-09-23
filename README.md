@@ -4,7 +4,7 @@ A Windows tool that reads a movement sheet, pulls the coded departure delays out
 every code against an editable list, and writes a professional, printable Excel workbook with room
 for the station's own notes.
 
-**Version 0.1.0.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
+**Version 0.2.0.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
 or build it from source. Copy the executable anywhere and run it: there is no installer, no runtime
 to install, no companion DLL, and it never needs administrator rights. Build output and release
 binaries are not stored in Git.
@@ -42,18 +42,18 @@ line for line even when a reason wraps.
    and reordered columns do not matter.
 2. **Check the options** on the left. The preview updates as you change them, and what the preview
    shows is what the workbook will contain.
-3. **Generate report…** writes the workbook and offers to open it.
+3. **Preview in Excel** writes a temporary copy and opens it straight away, no dialog, no save — a
+   quick look before you commit to a file. **Generate report…** writes the real workbook and offers
+   to open it.
 
 ### Options
 
 | Option | Effect |
 |---|---|
-| **Station** | Only departures from this station are reported: `From` is the station and `To` is not. Arrivals, ground runs and tows are therefore excluded. The app reports which station actually dominates the file, so a wrong setting is obvious rather than producing an empty report. |
+| **Station** | An editable dropdown, filled with every station seen in the file. Only departures from this station are reported: `From` is the station and `To` is not. Arrivals, ground runs and tows are therefore excluded. A station not yet in any loaded file can still be typed. The app reports which station actually dominates the file, so a wrong setting is obvious rather than producing an empty report. |
 | **Minimum delay** | Flights under this are left out. Measured against the sum of the delay codes that survive the mapper's exclusion column, or against the actual `ATD − STD` clock delay. Zero reports every flight that carries a code. |
 | **Dates** | Defaults to the period named in the file. |
-| **Movement types** | Built from the types actually present in the file. Flights are selected by default; ground runs (`T/GR`) and tows (`T/XL`) are not, because they carry no departure and no delay codes. |
-| **Operators** | Built from the file. Selecting all is the same as no filter. |
-| **Delay codes**, **Tail numbers** | Comma separated. Empty means no restriction. |
+| **Movement types**, **Operators**, **Delay codes**, **Tail numbers** | Multi-select dropdowns, built from the values actually present in the loaded file. Operators and delay codes show the mapped label beside the code once one exists. Ticking nothing and ticking everything both mean no restriction, so the report stays stable if a later file holds a value this one did not. Movement types default to the types that are actual flights; ground runs (`T/GR`) and tows (`T/XL`) start unticked, because they carry no departure and no delay codes. |
 
 ### Reconciliation
 
@@ -87,8 +87,12 @@ code,label,exclude,si_required,si_remark
 `aircraft-types.csv` maps the `EQP` column (`77X`, `76Y`, …) to readable names, with the same
 `exclude` column.
 
-A code or aircraft type that is not in its file is never fatal: it prints as written, is marked
-`(unmapped)`, and is listed on the summary so you know to add it.
+`operators.csv` maps the `OPR` column's ICAO-style codes (`CKS`, `GTI`, …) to a carrier name, seeded
+with a handful of well known cargo operators as a starting point — your own station's codes always
+win once you edit the file.
+
+A code, aircraft type or operator that is not in its file is never fatal: it prints as written, is
+marked `(unmapped)`, and is listed on the summary so you know to add it.
 
 ## Settings
 

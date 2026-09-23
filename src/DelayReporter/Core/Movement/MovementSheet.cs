@@ -72,5 +72,28 @@ namespace DelayReporter.Core.Movement
                 .Where(t => !string.IsNullOrWhiteSpace(t))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(t => t, StringComparer.OrdinalIgnoreCase);
+
+        public IEnumerable<string> Stations =>
+            Rows.Select(r => r.From)
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase);
+
+        public IEnumerable<string> Registrations =>
+            Rows.Select(r => r.Registration)
+                .Where(t => !string.IsNullOrWhiteSpace(t))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// Distinct delay codes present in the file, normalized so the sheet's zero-padded
+        /// "09" and a published list's "9" collapse to one entry.
+        /// </summary>
+        public IEnumerable<string> DelayCodes =>
+            Rows.SelectMany(r => r.Delay.Events)
+                .Select(e => Mapping.MappingTable.Normalize(e.Code))
+                .Where(c => c.Length > 0)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(c => c, StringComparer.Ordinal);
     }
 }

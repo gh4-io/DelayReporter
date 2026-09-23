@@ -93,6 +93,44 @@ Which station a report covers is a decision, so it is a setting rather than infe
 setting produces an empty report, which looks like a broken tool. The reader therefore detects the
 station that dominates the file and the report warns when the two disagree, naming both.
 
+## Every row is counted, not just every reported one
+
+`IsStationDeparture` used to reject arrivals, other-station rows and same-station ground runs/tows
+with a bare `continue` — nothing on the summary recorded that they existed. On the synthetic sample,
+15 rows read became 11 departures with 4 unaccounted for. A single `ExcludedByFilters` counter also
+did quadruple duty for date, operator, registration and delay-code exclusions, so a thin report
+could not say which filter was responsible.
+
+Both are counting bugs, not filtering bugs: nothing about which rows survive changed. Every drop
+point now increments its own counter (`ExcludedNotStationDeparture`, `ExcludedByDate`,
+`ExcludedByOperator`, `ExcludedByRegistration`, `ExcludedNoCodedDelay`, `ExcludedByDelayCode`), so
+`RowsRead` reconciles exactly against the printed summary at every level. This is the same
+principle as "Exclusion drops events, not flights" above, applied to the filters that ran before a
+flight was ever built.
+
+## Operator codes are ICAO, not IATA
+
+The `OPR` column carries three-letter codes (the sample's fictional `ZZA`–`ZZD` follow the same
+shape `tools/check-repo.ps1` blocks for real carriers: `ABX`, `CKS`, `CJT`, `DHK`, `GTI`), not the
+two-letter IATA designators. `operators.csv` is seeded accordingly, the same way `aircraft-types.csv`
+is seeded with real type names against a fictional flight number — a handful of well known cargo
+carriers, not a guess at any particular station's own internal codes. Unmapped operators behave
+exactly like unmapped delay codes and aircraft types: printed as written, never fatal, listed on the
+summary.
+
+## One shared filter control, not five bespoke ones
+
+Station, movement type, operator, delay code and tail number all narrow the same list of rows, and
+four of them can hold more than one value at once. Rather than a free-text box parsed on every
+keystroke for some and a checkbox `WrapPanel` for others, `Controls/MultiSelectDropdown` is one
+control used four times, each instance fed the distinct values actually present in the loaded file
+(`MovementSheet.Stations`/`Registrations`/`DelayCodes`, already-existing `MovementTypes`/`Operators`)
+rather than free text a user has to get right by hand. It keeps the existing "nothing ticked and
+everything ticked both mean no filter" convention exactly, so `ReportOptions` and `ReportBuilder` did
+not need to change shape at all — only how the UI fills them. Station stays single-select and stays
+an editable `ComboBox`, because it names one home station the whole report is measured from, not a
+set of values to include.
+
 ## No continuous integration
 
 Neither sibling has CI, the build is Windows-only, and a workflow that cannot build a WPF

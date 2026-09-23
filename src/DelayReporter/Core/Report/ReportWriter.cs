@@ -122,19 +122,26 @@ namespace DelayReporter.Core.Report
         {
             var metrics = new List<KeyValuePair<string, string>>
             {
+                Metric("Rows read", model.RowsRead),
+                Metric("Not a " + model.Station + " departure", model.ExcludedNotStationDeparture),
                 Metric(model.Station + " departures", model.StationDepartures),
                 Metric("Excluded by movement type", model.ExcludedByMovementType),
-                Metric("Excluded by filters", model.ExcludedByFilters),
+                Metric("Excluded by date", model.ExcludedByDate),
+                Metric("Excluded by operator", model.ExcludedByOperator),
+                Metric("Excluded by tail number", model.ExcludedByRegistration),
+                Metric("No coded delay", model.ExcludedNoCodedDelay),
                 Metric("With coded delay", model.FlightsWithCodedDelay),
                 Metric("Dropped, all codes excluded", model.FlightsDroppedAllCodesExcluded),
+                Metric("Excluded by delay code", model.ExcludedByDelayCode),
+                new KeyValuePair<string, string>("Below threshold", model.ExcludedByThreshold + " flights"),
                 Metric("Flights reported", model.ReportedFlights),
                 Metric("Delay events", model.ReportedEvents),
                 new KeyValuePair<string, string>("Total coded delay", model.TotalCodedDelayText),
                 new KeyValuePair<string, string>("Excluded by mapper", model.ExcludedEvents + " events"),
-                new KeyValuePair<string, string>("Below threshold", model.ExcludedByThreshold + " flights"),
                 Metric("Flights needing SI", model.FlightsRequiringSupplementary),
                 Metric("Coded/actual mismatches", model.ReconciliationMismatches),
                 Metric("Unmapped codes", model.UnmappedCodes.Count()),
+                Metric("Unmapped operators", model.UnmappedOperators.Count()),
             };
 
             for (int i = 0; i < metrics.Count; i++)

@@ -1,6 +1,7 @@
 <Window x:Class="DelayReporter.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:DelayReporter.Controls"
         Title="Delay Reporter" Height="720" Width="1120"
         MinHeight="560" MinWidth="900"
         Background="{StaticResource WindowBrush}"
@@ -14,6 +15,8 @@
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                     <Button x:Name="OpenButton" Content="_Open…" Click="OnOpen"/>
                     <Button x:Name="GenerateButton" Content="_Generate report…" Click="OnGenerate" IsEnabled="False"/>
+                    <Button x:Name="PreviewButton" Content="_Preview in Excel" Click="OnPreview" IsEnabled="False"
+                            ToolTip="Open the report in Excel as a temporary copy, without saving it"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
                     <Button Content="_Mappings" Click="OnOpenMappings" ToolTip="Open the folder holding the editable mapping CSVs"/>
@@ -43,7 +46,8 @@
                     <StackPanel>
 
                         <TextBlock Text="Station" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
-                        <TextBox x:Name="StationBox" Text="CVG" TextChanged="OnOptionChanged" MaxLength="8"/>
+                        <!-- Editable, so a station absent from the loaded file can still be typed. -->
+                        <ComboBox x:Name="StationBox" IsEditable="True" Text="CVG"/>
                         <TextBlock x:Name="StationHint" Style="{StaticResource Hint}" Margin="0,3,0,0"
                                    Text="Departures from this station are reported."/>
 
@@ -68,28 +72,22 @@
                         </StackPanel>
 
                         <TextBlock Text="Movement types" Style="{StaticResource SectionHeader}"/>
-                        <ItemsControl x:Name="MovementTypeList">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
+                        <controls:MultiSelectDropdown x:Name="MovementTypeFilter" SelectionChanged="OnOptionChanged"/>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                                   Text="Ground runs and tows start unticked."/>
 
                         <TextBlock Text="Operators" Style="{StaticResource SectionHeader}"/>
-                        <ItemsControl x:Name="OperatorList">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
+                        <controls:MultiSelectDropdown x:Name="OperatorFilter" SelectionChanged="OnOptionChanged"/>
 
                         <TextBlock Text="Delay codes" Style="{StaticResource SectionHeader}"/>
-                        <TextBox x:Name="CodesBox" TextChanged="OnOptionChanged"/>
+                        <controls:MultiSelectDropdown x:Name="DelayCodeFilter" SelectionChanged="OnOptionChanged"/>
                         <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
-                                   Text="Comma separated, e.g. 93A, 41A. Empty reports every code."/>
+                                   Text="Codes found in this file. All reports every code."/>
 
                         <TextBlock Text="Tail numbers" Style="{StaticResource SectionHeader}"/>
-                        <TextBox x:Name="RegistrationsBox" TextChanged="OnOptionChanged"/>
+                        <controls:MultiSelectDropdown x:Name="RegistrationFilter" SelectionChanged="OnOptionChanged"/>
                         <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
-                                   Text="Comma separated. Empty reports every aircraft."/>
+                                   Text="All reports every aircraft."/>
 
                     </StackPanel>
                 </ScrollViewer>

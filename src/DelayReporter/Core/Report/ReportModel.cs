@@ -28,6 +28,8 @@ namespace DelayReporter.Core.Report
         public string ScheduledText { get; set; } = string.Empty;
         public string ActualText { get; set; } = string.Empty;
         public string Operator { get; set; } = string.Empty;
+        public string OperatorLabel { get; set; } = string.Empty;
+        public bool OperatorUnmapped { get; set; }
         public string EquipmentCode { get; set; } = string.Empty;
         public string AircraftLabel { get; set; } = string.Empty;
         public bool AircraftUnmapped { get; set; }
@@ -99,14 +101,24 @@ namespace DelayReporter.Core.Report
         public List<string> Warnings { get; } = new List<string>();
 
         // Counts describing how the source was narrowed down, so the report is auditable.
+        // RowsRead = StationDepartures + ExcludedNotStationDeparture, and StationDepartures
+        // breaks down fully into every exclusion reason below plus ReportedFlights.
         public int RowsRead { get; set; }
         public int StationDepartures { get; set; }
+
+        /// <summary>Arrivals, other-station rows, and same-station ground runs/tows.</summary>
+        public int ExcludedNotStationDeparture { get; set; }
+
         public int ExcludedByMovementType { get; set; }
-        public int ExcludedByFilters { get; set; }
+        public int ExcludedByDate { get; set; }
+        public int ExcludedByOperator { get; set; }
+        public int ExcludedByRegistration { get; set; }
+        public int ExcludedNoCodedDelay { get; set; }
         public int FlightsWithCodedDelay { get; set; }
+        public int FlightsDroppedAllCodesExcluded { get; set; }
+        public int ExcludedByDelayCode { get; set; }
         public int ExcludedByThreshold { get; set; }
         public int ExcludedEvents { get; set; }
-        public int FlightsDroppedAllCodesExcluded { get; set; }
 
         public int ReportedFlights => Flights.Count;
         public int ReportedEvents => Flights.Sum(f => f.Events.Count);
@@ -121,6 +133,12 @@ namespace DelayReporter.Core.Report
         public IEnumerable<string> UnmappedAircraft =>
             Flights.Where(f => f.AircraftUnmapped && f.EquipmentCode.Length > 0)
                    .Select(f => f.EquipmentCode)
+                   .Distinct(StringComparer.OrdinalIgnoreCase)
+                   .OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
+
+        public IEnumerable<string> UnmappedOperators =>
+            Flights.Where(f => f.OperatorUnmapped && f.Operator.Length > 0)
+                   .Select(f => f.Operator)
                    .Distinct(StringComparer.OrdinalIgnoreCase)
                    .OrderBy(c => c, StringComparer.OrdinalIgnoreCase);
     }

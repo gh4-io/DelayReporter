@@ -40,7 +40,11 @@ namespace DelayReporter.Core.Report
 
             foreach (MovementRow row in sheet.Rows)
             {
-                if (!IsStationDeparture(row, model.Station)) continue;
+                if (!IsStationDeparture(row, model.Station))
+                {
+                    model.ExcludedNotStationDeparture++;
+                    continue;
+                }
                 model.StationDepartures++;
 
                 if (options.MovementTypes.Count > 0 && !options.MovementTypes.Contains(row.Type))
@@ -49,15 +53,27 @@ namespace DelayReporter.Core.Report
                     continue;
                 }
 
-                if (!MatchesDate(row, options) ||
-                    !MatchesSet(options.Operators, row.Operator) ||
-                    !MatchesSet(options.Registrations, row.Registration))
+                if (!MatchesDate(row, options))
                 {
-                    model.ExcludedByFilters++;
+                    model.ExcludedByDate++;
+                    continue;
+                }
+                if (!MatchesSet(options.Operators, row.Operator))
+                {
+                    model.ExcludedByOperator++;
+                    continue;
+                }
+                if (!MatchesSet(options.Registrations, row.Registration))
+                {
+                    model.ExcludedByRegistration++;
                     continue;
                 }
 
-                if (!row.HasCodedDelay) continue;
+                if (!row.HasCodedDelay)
+                {
+                    model.ExcludedNoCodedDelay++;
+                    continue;
+                }
                 model.FlightsWithCodedDelay++;
 
                 ReportFlight flight = Resolve(row, mappings, model);
@@ -71,7 +87,7 @@ namespace DelayReporter.Core.Report
                 if (options.DelayCodes.Count > 0 &&
                     !flight.Events.Any(e => options.DelayCodes.Contains(MappingTable.Normalize(e.Code))))
                 {
-                    model.ExcludedByFilters++;
+                    model.ExcludedByDelayCode++;
                     continue;
                 }
 
@@ -137,6 +153,12 @@ namespace DelayReporter.Core.Report
             flight.AircraftLabel = aircraft != null && aircraft.Label.Length > 0
                 ? aircraft.Label
                 : row.EquipmentCode;
+
+            MappingEntry? oprEntry = mappings.Operators.Find(row.Operator);
+            flight.OperatorUnmapped = oprEntry == null;
+            flight.OperatorLabel = oprEntry != null && oprEntry.Label.Length > 0
+                ? oprEntry.Label
+                : row.Operator;
 
             foreach (DelayEvent source in row.Delay.Events)
             {

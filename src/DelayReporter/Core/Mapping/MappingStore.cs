@@ -18,6 +18,7 @@ namespace DelayReporter.Core.Mapping
     {
         public const string DelayCodesFile = "delay-codes.csv";
         public const string AircraftTypesFile = "aircraft-types.csv";
+        public const string OperatorsFile = "operators.csv";
 
         private readonly string _folder;
 
@@ -39,6 +40,8 @@ namespace DelayReporter.Core.Mapping
 
         public MappingTable AircraftTypes { get; private set; } = new MappingTable(AircraftTypesFile);
 
+        public MappingTable Operators { get; private set; } = new MappingTable(OperatorsFile);
+
         public List<string> Warnings { get; } = new List<string>();
 
         public void Load()
@@ -46,6 +49,7 @@ namespace DelayReporter.Core.Mapping
             Warnings.Clear();
             DelayCodes = LoadOne(DelayCodesFile);
             AircraftTypes = LoadOne(AircraftTypesFile);
+            Operators = LoadOne(OperatorsFile);
         }
 
         private MappingTable LoadOne(string fileName)
