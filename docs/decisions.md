@@ -167,12 +167,14 @@ say different things about the same run.
 ## Operator codes were checked against a real file, not guessed
 
 `operators.csv` started as eight carriers I was confident about. Checked against a real CVG
-movement sheet, five of its eleven distinct codes were missing. A quick web search misidentified
-one of them — it conflated AeroLogic with EAT Leipzig, two different DHL-network German cargo
-carriers whose ICAO and IATA codes are easy to cross — so each match was verified independently
-before being added, and the one code (`WIN`) that no source confirmed was left unmapped rather than
-guessed. A wrong carrier name in an operational report is worse than an honest "unmapped" tag, so
-the bar for adding a row here is confirmation, not plausibility.
+movement sheet, six of its eleven distinct codes were missing. A quick web search misidentified one
+of them — it conflated AeroLogic with EAT Leipzig, two different DHL-network German cargo carriers
+whose ICAO and IATA codes are easy to cross — so each match was verified independently before being
+added. One code (`WIN`) turned up no reliable source and shipped unmapped in v0.3.0 rather than as
+a guess; it was Awesome Cargo, confirmed directly by the station afterwards. A wrong carrier name in
+an operational report is worse than an honest "unmapped" tag, so the bar for adding a row here is
+confirmation, not plausibility — and an unmapped code costs nothing but a lookup once the real
+answer is known.
 
 ## No continuous integration
 

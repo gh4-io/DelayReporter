@@ -4,7 +4,7 @@ A Windows tool that reads a movement sheet, pulls the coded departure delays out
 every code against an editable list, and writes a professional, printable Excel workbook with room
 for the station's own notes.
 
-**Version 0.3.0.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
+**Version 0.3.1.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
 or build it from source. Copy the executable anywhere and run it: there is no installer, no runtime
 to install, no companion DLL, and it never needs administrator rights. Build output and release
 binaries are not stored in Git.
@@ -115,7 +115,20 @@ The executable is unsigned, so Windows may show a security prompt for a download
 
 ## Build and test
 
-Windows with the .NET SDK installed:
+Windows with the [.NET SDK](https://dotnet.microsoft.com/download) installed (the `net48` target
+itself needs nothing beyond what Windows already ships — only building from source needs the SDK).
+
+### Rebuilding the executable
+
+```powershell
+dotnet build src/DelayReporter/DelayReporter.csproj -c Release
+```
+
+The rebuilt `DelayReporter.exe` lands at `src/DelayReporter/bin/Release/net48/DelayReporter.exe`.
+Copy it wherever you like; nothing else in that folder needs to travel with it. A `-c Debug` build
+(or omitting `-c` entirely) lands the same way under `bin/Debug/net48/`.
+
+### Verifying a change
 
 ```powershell
 dotnet build src/DelayReporter/DelayReporter.csproj -c Release
@@ -123,6 +136,12 @@ if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-core.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-repo.ps1
 ```
+
+`test-core.ps1` loads the build just produced and drives the parsing, mapping and report code
+directly against `samples/demo-movement-sheet.csv`. `check-repo.ps1` checks repository hygiene:
+no binaries, no real operator codes in the sample, versions in step across the project file,
+manifest, README, changelog and release notes. See [releasing](docs/releasing.md) for the full
+checklist a tagged release goes through, including the dist copy and hash verification step.
 
 The only package reference is the pinned build-time reference assemblies package. The runtime
 target stays `net48` and the executable uses the .NET Framework supplied by Windows.

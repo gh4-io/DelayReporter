@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-09-23
+
+### Fixed
+
+- `operators.csv`: `WIN` is Awesome Cargo, confirmed by the station. It shipped unmapped in 0.3.0
+  because no independent source confirmed it at the time; guessing was rejected in favour of an
+  honest "unmapped" tag, and this corrects it now that the real answer is known.
+
+### Documentation
+
+- README: added a short, standalone "Rebuilding the executable" section stating the exact output
+  path (`src/DelayReporter/bin/Release/net48/DelayReporter.exe`), separate from the fuller
+  build-and-verify flow that also runs the check scripts.
+
 ## [0.3.0] - 2026-09-23
 
 ### Added
@@ -95,6 +109,7 @@ First release.
   development sample and should be checked against the station's own fleet naming.
 - No codes are excluded by default, so the first report shows everything until the mapper is edited.
 
+[0.3.1]: https://github.com/gh4-io/delayreporter/releases/tag/v0.3.1
 [0.3.0]: https://github.com/gh4-io/delayreporter/releases/tag/v0.3.0
 [0.2.0]: https://github.com/gh4-io/delayreporter/releases/tag/v0.2.0
 [0.1.0]: https://github.com/gh4-io/delayreporter/releases/tag/v0.1.0
