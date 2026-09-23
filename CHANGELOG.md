@@ -4,6 +4,51 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- The window is redesigned to match ICS Scrubber and OFT Scrubber, and now uses their shared
+  `Fluent.xaml` and `Shell.xaml` theme unchanged: a File menu, Home, Presets, View and Help ribbon
+  tabs, a collapsible options pane, and a status bar. Dragging a movement sheet over the window
+  covers it with OFT Scrubber's 60% accent overlay.
+- The summary moves to the status bar, still worded exactly as the workbook words it; its tooltip
+  carries the file, its period and every detail count.
+- Delay and Coded are one column. It shows the clock delay, and both figures in red, `0:32 ≠ 0:25`,
+  only when the coded durations disagree with it.
+- The minimum delay takes one row: minutes with steppers, and a Coded / Actual switch.
+- Every column heading carries its sort tag and, where it can be filtered, its filter tag, both
+  right-aligned and always visible, lit when they apply.
+- The aircraft label choices are called Min, Std and Full.
+- Mappings and settings folders are no longer on the Home tab. Help > Data folder and a new Data
+  page in Settings open `%APPDATA%\Delay Reporter`, which holds both.
+- **Settings** is laid out like Outlook's, with pages down the left and sliding switches, and gains
+  an Email page.
+- The MX tick in the preview is a plain on/off box: ticked when a code maps to `MX`, cleared
+  otherwise, and a click records a correction only when it differs from the mapping. It used to
+  bind to a three-state override and showed as permanently indeterminate on load.
+
+### Added
+
+- Clickable column headings sort the list, with an arrow on the sorted column. The workbook and
+  email follow the same order.
+- Filter tags on the column headings show which filters are narrowing the list; hovering shows the
+  filter and clicking opens it.
+- Rows can be selected, hidden and reported on their own: select all, select none, hide, unhide
+  all, and report selected (save, preview or email). Flights hidden by hand or left out of a
+  "report selected" run are counted on the summary, never dropped silently.
+- An MX filter: all flights, MX only, or not MX. An MX-only report says so in its subtitle and
+  email, and warns when `delay-codes.csv` marks no code as MX.
+- **Close** (Ctrl+W) closes the movement sheet and resets the window.
+- A date format for the Date column, from Settings or the Date heading's right-click menu,
+  applied to the preview, workbook and email.
+- A search bar over the flight list that looks through every field of every flight. It narrows the report like any
+  other filter, and the flights it leaves out are counted on the summary.
+- **Send email** opens a compact draft of the report in the default mail app, with an Outstanding
+  column of what is still owed on each flight, optionally with the workbook attached.
+- An Outstanding column in the preview, matching the email.
+- Presets: three built in, plus your own saved under `%APPDATA%\Delay Reporter\presets\`.
+
 ## [0.3.1] - 2026-09-23
 
 ### Fixed

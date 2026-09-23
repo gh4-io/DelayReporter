@@ -38,6 +38,18 @@ namespace DelayReporter.Core.Report
                     "Check the station setting if the report looks empty.");
             }
 
+            // A delay-codes.csv from before the category column existed marks nothing MX, and the
+            // user's file always wins over the seed. Filtering on MX would then quietly leave
+            // only hand-ticked flights, so the report says why.
+            if (options.MxFilter != MxFilter.All &&
+                !mappings.DelayCodes.Entries.Any(e => e.IsCategory(ReportFlight.MxCategory)))
+            {
+                model.Warnings.Add(
+                    "No code in delay-codes.csv has the category MX, so only flights ticked MX by hand count as MX. " +
+                    "Add a category column to that file and put MX against the maintenance codes (the 40s), " +
+                    "or delete the file to have it written afresh with them marked.");
+            }
+
             foreach (MovementRow row in sheet.Rows)
             {
                 if (!IsStationDeparture(row, model.Station))
@@ -97,10 +109,43 @@ namespace DelayReporter.Core.Report
                     continue;
                 }
 
+                if (options.MxFilter != MxFilter.All &&
+                    flight.IsMxDelay != (options.MxFilter == MxFilter.MxOnly))
+                {
+                    model.ExcludedByMx++;
+                    continue;
+                }
+
+                // The search and the hand decisions come last, so a flight is only ever counted
+                // against them when every other filter would have reported it.
+                if (!flight.MatchesSearch(options.SearchText))
+                {
+                    model.ExcludedBySearch++;
+                    continue;
+                }
+
+                if (options.HiddenRows.Contains(row.SourceRowNumber))
+                {
+                    flight.IsHidden = true;
+                    model.HiddenFlights.Add(flight);
+                    continue;
+                }
+
+                if (options.SelectedRows.Count > 0 && !options.SelectedRows.Contains(row.SourceRowNumber))
+                {
+                    model.ExcludedNotSelected++;
+                    continue;
+                }
+
                 model.Flights.Add(flight);
             }
 
-            model.Flights.Sort(CompareFlights);
+            Comparison<ReportFlight> order = Ordering(options);
+            model.Flights.Sort(order);
+            model.HiddenFlights.Sort(order);
+            model.FlightsIncludingHidden.AddRange(model.Flights.Concat(model.HiddenFlights));
+            model.FlightsIncludingHidden.Sort(order);
+
             BuildTallies(model);
             return model;
         }
@@ -135,7 +180,9 @@ namespace DelayReporter.Core.Report
             {
                 SourceRowNumber = row.SourceRowNumber,
                 Date = row.Date,
-                DateText = row.DateText,
+                DateText = options.DateFormat.Length > 0 && row.Date.HasValue
+                    ? options.FormatDate(row.Date.Value)
+                    : row.DateText,
                 FlightNumber = row.FlightNumber,
                 Registration = row.Registration,
                 From = row.From,
@@ -208,6 +255,43 @@ namespace DelayReporter.Core.Report
                 : flight.CodedMinutes;
 
             return measured >= options.MinimumDelayMinutes;
+        }
+
+        /// <summary>
+        /// The chosen column first, in the chosen direction, then the natural reading order
+        /// and finally the source row, so equal values always come out in the same order and
+        /// the preview, workbook and email agree row for row.
+        /// </summary>
+        public static Comparison<ReportFlight> Ordering(ReportOptions options)
+        {
+            Comparison<ReportFlight> primary = Primary(options.SortColumn);
+            int direction = options.SortDescending ? -1 : 1;
+            return (a, b) =>
+            {
+                int result = direction * primary(a, b);
+                if (result != 0) return result;
+                result = CompareFlights(a, b);
+                return result != 0 ? result : a.SourceRowNumber.CompareTo(b.SourceRowNumber);
+            };
+        }
+
+        private static Comparison<ReportFlight> Primary(ReportSortColumn column)
+        {
+            StringComparer text = StringComparer.OrdinalIgnoreCase;
+            switch (column)
+            {
+                case ReportSortColumn.Flight: return (a, b) => text.Compare(a.FlightNumber, b.FlightNumber);
+                case ReportSortColumn.Registration: return (a, b) => text.Compare(a.Registration, b.Registration);
+                case ReportSortColumn.Destination: return (a, b) => text.Compare(a.To, b.To);
+                case ReportSortColumn.Scheduled: return (a, b) => string.CompareOrdinal(a.ScheduledText, b.ScheduledText);
+                case ReportSortColumn.ActualDelay: return (a, b) => Nullable.Compare(a.ActualDelayMinutes, b.ActualDelayMinutes);
+                case ReportSortColumn.CodedDelay: return (a, b) => a.CodedMinutes.CompareTo(b.CodedMinutes);
+                case ReportSortColumn.Mx: return (a, b) => a.IsMxDelay.CompareTo(b.IsMxDelay);
+                case ReportSortColumn.Operator: return (a, b) => text.Compare(a.OperatorDisplay, b.OperatorDisplay);
+                case ReportSortColumn.Codes: return (a, b) => text.Compare(a.CodeSummary, b.CodeSummary);
+                case ReportSortColumn.Outstanding: return (a, b) => a.OutstandingItems.Count.CompareTo(b.OutstandingItems.Count);
+                default: return CompareFlights;
+            }
         }
 
         private static int CompareFlights(ReportFlight a, ReportFlight b)

@@ -4,8 +4,12 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
+            <!-- Fluent and Shell are the family's shared theme, kept identical to ICS Scrubber
+                 and OFT Scrubber. Report holds what only this application needs. -->
             <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Fluent.xaml"/>
                 <ResourceDictionary Source="Themes/Shell.xaml"/>
+                <ResourceDictionary Source="Themes/Report.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>

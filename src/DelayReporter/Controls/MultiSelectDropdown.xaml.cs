@@ -89,6 +89,19 @@ namespace DelayReporter.Controls
 
         public void ClearSelection() => ApplyBulk(_ => false);
 
+        /// <summary>Opens the list, as a grid header's filter tag does.</summary>
+        public void Open()
+        {
+            FaceButton.Focus();
+            FaceButton.IsChecked = true;
+        }
+
+        /// <summary>The ticked items one per line, for a tooltip; empty when unrestricted.</summary>
+        public string SelectionDescription =>
+            IsUnrestricted
+                ? string.Empty
+                : string.Join(Environment.NewLine, _items.Where(i => i.IsSelected).Select(i => i.Display));
+
         private void ApplyBulk(Func<MultiSelectItem, bool> selected)
         {
             bool changed = false;
@@ -138,6 +151,7 @@ namespace DelayReporter.Controls
         {
             List<MultiSelectItem> selected = _items.Where(i => i.IsSelected).ToList();
 
+            FilterGlyph.Visibility = IsUnrestricted ? Visibility.Collapsed : Visibility.Visible;
             if (IsUnrestricted)
             {
                 FaceText.Text = "All";

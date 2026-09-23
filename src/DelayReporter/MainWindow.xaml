@@ -2,201 +2,756 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:DelayReporter.Controls"
-        Title="Delay Reporter" Height="720" Width="1120"
-        MinHeight="560" MinWidth="900"
+        Title="Delay Reporter"
+        Height="780" Width="1280"
+        MinHeight="560" MinWidth="960"
+        WindowStartupLocation="CenterScreen"
         Background="{StaticResource WindowBrush}"
-        AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver">
+        FontFamily="{StaticResource UiFont}"
+        AllowDrop="True"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        PreviewDragEnter="OnDragEnter"
+        PreviewDragOver="OnDragEnter"
+        PreviewDragLeave="OnDragLeave"
+        PreviewDrop="OnDrop">
+
+    <Window.InputBindings>
+        <KeyBinding Key="O" Modifiers="Control" Command="ApplicationCommands.Open" />
+        <KeyBinding Key="S" Modifiers="Control" Command="ApplicationCommands.Save" />
+        <KeyBinding Key="E" Modifiers="Control" Command="ApplicationCommands.Find" />
+        <KeyBinding Key="F" Modifiers="Control" Command="ApplicationCommands.Find" />
+        <KeyBinding Key="W" Modifiers="Control" Command="ApplicationCommands.Close" />
+    </Window.InputBindings>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Open" Executed="OnOpen" />
+        <CommandBinding Command="ApplicationCommands.Save" Executed="OnGenerate" />
+        <CommandBinding Command="ApplicationCommands.Find" Executed="OnFocusSearch" />
+        <CommandBinding Command="ApplicationCommands.Close" Executed="OnCloseFile" />
+    </Window.CommandBindings>
 
     <Window.Resources>
-        <controls:CodePartsConverter x:Key="CodeParts"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <controls:CodePartsConverter x:Key="CodeParts" />
+
+        <!--
+          A column header: the title on the left, then against the right edge a sort tag and, on a
+          column that can be filtered, a filter tag. Both tags are always shown, quiet until they
+          apply, so every heading reads the same way in any combination.
+        -->
+        <DataTemplate x:Key="HeaderTemplate">
+            <Grid Background="Transparent" ToolTip="{Binding SortToolTip}"
+                  AutomationProperties.Name="{Binding AutomationName}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="Title" Text="{Binding Title}" FontSize="12" TextTrimming="CharacterEllipsis"
+                           Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="4,0,0,0">
+                    <TextBlock x:Name="SortTag" Text="{Binding SortGlyph}" Style="{StaticResource IconGlyph}" FontSize="10"
+                               Foreground="{StaticResource BorderStrongBrush}" Width="14" TextAlignment="Center"
+                               VerticalAlignment="Center" />
+                    <Button x:Name="FilterTag" Style="{StaticResource HeaderTag}"
+                            Visibility="{Binding IsFilterable, Converter={StaticResource BoolToVis}}"
+                            ToolTip="{Binding FilterToolTip}"
+                            Click="OnHeaderFilterClick"
+                            AutomationProperties.Name="{Binding Title, StringFormat=Filter {0}}" />
+                </StackPanel>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsSorted}" Value="True">
+                    <Setter TargetName="Title" Property="Foreground" Value="{StaticResource TextBrush}" />
+                    <Setter TargetName="Title" Property="FontWeight" Value="SemiBold" />
+                    <Setter TargetName="SortTag" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsFiltered}" Value="True">
+                    <Setter TargetName="FilterTag" Property="Background" Value="{StaticResource AccentSoftBrush}" />
+                    <Setter TargetName="FilterTag" Property="Foreground" Value="{StaticResource AccentBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- The date heading's own right-click menu: the format the Date column prints in. -->
+        <ContextMenu x:Key="DateFormatMenu" Opened="OnDateFormatMenuOpened">
+            <MenuItem Header="As in the file" Tag="" IsCheckable="True" Click="OnDateFormatChoice" />
+            <Separator />
+            <MenuItem Header="14.09.2026" Tag="dd.MM.yyyy" IsCheckable="True" Click="OnDateFormatChoice" />
+            <MenuItem Header="14/09/2026" Tag="dd/MM/yyyy" IsCheckable="True" Click="OnDateFormatChoice" />
+            <MenuItem Header="09/14/2026" Tag="MM/dd/yyyy" IsCheckable="True" Click="OnDateFormatChoice" />
+            <MenuItem Header="2026-09-14" Tag="yyyy-MM-dd" IsCheckable="True" Click="OnDateFormatChoice" />
+            <MenuItem Header="14 Sep 2026" Tag="dd MMM yyyy" IsCheckable="True" Click="OnDateFormatChoice" />
+        </ContextMenu>
+
+        <Style x:Key="DateHeader" TargetType="GridViewColumnHeader" BasedOn="{StaticResource ReportHeader}">
+            <Setter Property="ContextMenu" Value="{StaticResource DateFormatMenu}" />
+        </Style>
+
+        <!--
+          Delay and Coded used to be two columns that agreed on almost every flight. They are one
+          now: the clock delay, with the coded total beside it, in red, only when the two differ.
+        -->
+        <DataTemplate x:Key="DelayCell">
+            <TextBlock x:Name="Text" Text="{Binding DelayDisplay}" ToolTip="{Binding DelayToolTip}" />
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Reconciles}" Value="False">
+                    <Setter TargetName="Text" Property="Foreground" Value="{StaticResource DangerBrush}" />
+                    <Setter TargetName="Text" Property="FontWeight" Value="SemiBold" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- Everything a row can have done to it, mirrored by the Rows group on the Home tab.
+             Items in a resource get no named fields, so the code finds them by Tag. -->
+        <ContextMenu x:Key="RowMenu" Opened="OnRowMenuOpened">
+            <MenuItem Header="Select all" InputGestureText="Ctrl+A" Click="OnSelectAll" />
+            <MenuItem Header="Select none" InputGestureText="Esc" Click="OnSelectNone" />
+            <Separator />
+            <MenuItem Tag="Hide" Header="Hide selected" InputGestureText="Del" Click="OnHideSelected" />
+            <MenuItem Tag="Unhide" Header="Unhide selected" Click="OnUnhideSelected" />
+            <MenuItem Tag="UnhideAll" Header="Unhide all" Click="OnUnhideAll" />
+            <Separator />
+            <MenuItem Tag="Report" Header="Report selected">
+                <MenuItem Header="Save as report…" Click="OnGenerateSelected" />
+                <MenuItem Header="Preview in Excel" Click="OnPreviewSelected" />
+                <MenuItem Header="Send as email" Click="OnEmailSelected" />
+            </MenuItem>
+        </ContextMenu>
     </Window.Resources>
 
+    <Grid>
     <DockPanel>
 
-        <!-- Commands -->
-        <Border DockPanel.Dock="Top" Style="{StaticResource Card}" Padding="10,8" Margin="10,10,10,0">
+        <!-- Menu bar: File stays a dropdown, everything else is a ribbon tab. -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="6,2,6,0">
             <DockPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                    <Button x:Name="OpenButton" Content="_Open…" Click="OnOpen"/>
-                    <Button x:Name="GenerateButton" Content="_Generate report…" Click="OnGenerate" IsEnabled="False"/>
-                    <Button x:Name="PreviewButton" Content="_Preview in Excel" Click="OnPreview" IsEnabled="False"
-                            ToolTip="Open the report in Excel as a temporary copy, without saving it"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Tag="&#xE713;"
+                        VerticalAlignment="Center" Margin="0,0,4,2"
+                        Click="OnSettings" ToolTip="Settings" AutomationProperties.Name="Settings" />
+
+                <StackPanel Orientation="Horizontal">
+                    <Menu VerticalAlignment="Center" Margin="0,0,4,2">
+                        <MenuItem Header="_File">
+                            <MenuItem Header="Open movement sheet…" InputGestureText="Ctrl+O" Click="OnOpen" />
+                            <MenuItem x:Name="MenuClose" Header="Close" InputGestureText="Ctrl+W" Click="OnCloseFile" IsEnabled="False" />
+                            <Separator />
+                            <MenuItem x:Name="MenuGenerate" Header="Save report…" InputGestureText="Ctrl+S" Click="OnGenerate" />
+                            <MenuItem x:Name="MenuPreview" Header="Preview in Excel" Click="OnPreview" />
+                            <MenuItem x:Name="MenuEmail" Header="Send as email" Click="OnEmail" />
+                            <MenuItem x:Name="MenuReportSelected" Header="Report selected">
+                                <MenuItem Header="Save as report…" Click="OnGenerateSelected" />
+                                <MenuItem Header="Preview in Excel" Click="OnPreviewSelected" />
+                                <MenuItem Header="Send as email" Click="OnEmailSelected" />
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Settings…" Click="OnSettings" />
+                            <Separator />
+                            <MenuItem Header="Exit" Click="OnExit" />
+                        </MenuItem>
+                    </Menu>
+
+                    <ToggleButton x:Name="TabHome" Style="{StaticResource RibbonTab}" Content="Home" Checked="OnTabChanged" Unchecked="OnTabChanged" />
+                    <ToggleButton x:Name="TabPresets" Style="{StaticResource RibbonTab}" Content="Presets" Checked="OnTabChanged" Unchecked="OnTabChanged" />
+                    <ToggleButton x:Name="TabView" Style="{StaticResource RibbonTab}" Content="View" Checked="OnTabChanged" Unchecked="OnTabChanged" />
+                    <ToggleButton x:Name="TabHelp" Style="{StaticResource RibbonTab}" Content="Help" Checked="OnTabChanged" Unchecked="OnTabChanged" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <Button Content="_Settings" Click="OnSettings" ToolTip="Choose how the preview and the report read"/>
-                    <Button Content="_Mappings" Click="OnOpenMappings" ToolTip="Open the folder holding the editable mapping CSVs"/>
-                    <Button Content="_About" Click="OnAbout" Margin="0"/>
-                </StackPanel>
-                <TextBlock x:Name="FileText" Text="No file loaded — open a movement sheet, or drop one on this window."
-                           VerticalAlignment="Center" Margin="14,0" TextTrimming="CharacterEllipsis"
-                           Foreground="{StaticResource MutedTextBrush}"/>
             </DockPanel>
         </Border>
 
-        <!-- Status -->
-        <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Padding="10,6" Margin="10,6,10,10">
-            <TextBlock x:Name="StatusText" Text="Ready." TextTrimming="CharacterEllipsis"/>
+        <!-- Command bar: shows the selected tab's buttons and nothing else. -->
+        <Border DockPanel.Dock="Top"
+                Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="7,4,7,2"
+                MinHeight="92">
+            <Grid>
+                <!-- Home -->
+                <StackPanel x:Name="PanelHome" Orientation="Horizontal">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource RibbonButton}" Tag="&#xE8E5;" Content="Open"
+                                    Foreground="{StaticResource AccentBrush}"
+                                    Click="OnOpen" ToolTip="Open a movement sheet (Ctrl+O)" />
+                            <Button x:Name="BtnClose" Style="{StaticResource RibbonButton}" Tag="&#xE8BB;" Content="Close"
+                                    IsEnabled="False" Click="OnCloseFile"
+                                    ToolTip="Close the movement sheet and start again: filters, search, hidden rows and MX ticks are cleared (Ctrl+W)" />
+                        </StackPanel>
+                        <TextBlock Text="File" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+
+                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,4,6,20" />
+
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="BtnGenerate" Style="{StaticResource RibbonButton}" Tag="&#xE792;" Content="Save report"
+                                    Foreground="{StaticResource AccentBrush}" IsEnabled="False"
+                                    Click="OnGenerate" ToolTip="Save every visible flight as a workbook (Ctrl+S)" />
+                            <Button x:Name="BtnPreview" Style="{StaticResource RibbonButton}" Tag="&#xE8A1;" Content="Preview in Excel"
+                                    IsEnabled="False"
+                                    Click="OnPreview" ToolTip="Open the report in Excel as a temporary copy, without saving it" />
+                            <Button x:Name="BtnEmail" Style="{StaticResource RibbonButton}" Tag="&#xE715;" Content="Send email"
+                                    IsEnabled="False"
+                                    Click="OnEmail" ToolTip="Open a compact draft of every visible flight in your mail app, where you review it and press Send" />
+                        </StackPanel>
+                        <TextBlock Text="Report" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+
+                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,4,6,20" />
+
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="BtnSelectAll" Style="{StaticResource RibbonButton}" Tag="&#xE8B3;" Content="Select all"
+                                    IsEnabled="False" Click="OnSelectAll" ToolTip="Select every flight in the list (Ctrl+A)" />
+                            <Button x:Name="BtnSelectNone" Style="{StaticResource RibbonButton}" Tag="&#xE8E6;" Content="Select none"
+                                    IsEnabled="False" Click="OnSelectNone" ToolTip="Clear the selection (Esc)" />
+                            <Button x:Name="BtnHide" Style="{StaticResource RibbonButton}" Tag="&#xED1A;" Content="Hide"
+                                    IsEnabled="False" Click="OnHideSelected"
+                                    ToolTip="Leave the selected flights out of the report. They are counted on its summary as hidden by hand (Del)" />
+                            <Button x:Name="BtnUnhideAll" Style="{StaticResource RibbonButton}" Tag="&#xE7B3;" Content="Unhide all"
+                                    IsEnabled="False" Click="OnUnhideAll" ToolTip="Bring every hidden flight back into the report" />
+                            <!-- A plain ribbon button, not the chevron style: the two-line label needs its room. -->
+                            <Button x:Name="BtnReportSelected" Style="{StaticResource RibbonButton}" Tag="&#xE762;" Content="Report selected…"
+                                    IsEnabled="False" Click="OnReportSelectedMenu"
+                                    ToolTip="Save, preview or email only the selected flights. The rest are counted as not selected">
+                                <Button.ContextMenu>
+                                    <ContextMenu Placement="Bottom">
+                                        <MenuItem Header="Save as report…" Click="OnGenerateSelected" />
+                                        <MenuItem Header="Preview in Excel" Click="OnPreviewSelected" />
+                                        <MenuItem Header="Send as email" Click="OnEmailSelected" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Text="Rows" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Presets: built-in ones stay visible; saved ones share one dropdown. -->
+                <StackPanel x:Name="PanelPresets" Orientation="Horizontal" Visibility="Collapsed">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <StackPanel x:Name="PresetButtons" Orientation="Horizontal" />
+                            <Button x:Name="BtnCustomPresets" Style="{StaticResource RibbonMenuButton}"
+                                    Tag="&#xE1CB;" Content="Custom" Click="OnCustomPresetsMenu"
+                                    IsEnabled="False" ToolTip="Apply one of your saved presets">
+                                <Button.ContextMenu>
+                                    <ContextMenu x:Name="CustomPresetMenu" Placement="Bottom" />
+                                </Button.ContextMenu>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Text="Presets" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+
+                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,4,6,20" />
+
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource RibbonButton}" Tag="&#xE74E;" Content="Save current as"
+                                    Click="OnSavePreset" ToolTip="Store the station, threshold and filters under a name of your choosing" />
+                            <Button x:Name="BtnManagePresets" Style="{StaticResource RibbonButton}" Tag="&#xE70F;" Content="Manage"
+                                    Click="OnManagePresets" IsEnabled="False" ToolTip="Rename or delete your own presets" />
+                        </StackPanel>
+                        <TextBlock Text="Manage" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- View -->
+                <StackPanel x:Name="PanelView" Orientation="Horizontal" Visibility="Collapsed">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <ToggleButton x:Name="ToggleOptionsPane" Style="{StaticResource RibbonToggle}"
+                                          Tag="&#xE9D5;" Content="Options" Checked="OnToggleOptionsPane" Unchecked="OnToggleOptionsPane"
+                                          ToolTip="Show or hide the options pane on the left" />
+                        </StackPanel>
+                        <TextBlock Text="Panes" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+
+                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,4,6,20" />
+
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <ToggleButton x:Name="ToggleShowHidden" Style="{StaticResource RibbonToggle}"
+                                          Tag="&#xE7B3;" Content="Hidden rows" Checked="OnToggleShowHidden" Unchecked="OnToggleShowHidden"
+                                          ToolTip="Show flights hidden by hand, faded, so single ones can be brought back" />
+                            <Button x:Name="BtnCodesDisplay" Style="{StaticResource RibbonMenuButton}"
+                                    Tag="&#xE8FD;" Content="Codes not chosen" Click="OnCodesDisplayMenu"
+                                    ToolTip="How the Codes column shows codes the Delay codes filter did not choose">
+                                <Button.ContextMenu>
+                                    <ContextMenu Placement="Bottom">
+                                        <MenuItem x:Name="MenuCodesVisible" Header="Visible" IsCheckable="True" Click="OnCodesDisplayChoice" Tag="Visible" />
+                                        <MenuItem x:Name="MenuCodesDimmed" Header="Dimmed" IsCheckable="True" Click="OnCodesDisplayChoice" Tag="Dimmed" />
+                                        <MenuItem x:Name="MenuCodesHidden" Header="Hidden" IsCheckable="True" Click="OnCodesDisplayChoice" Tag="Hidden" />
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Text="Flights" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+
+                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,4,6,20" />
+
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="BtnResetSort" Style="{StaticResource RibbonButton}" Tag="&#xE8CB;" Content="Reset sort"
+                                    Click="OnResetSort" IsEnabled="False"
+                                    ToolTip="Back to date and scheduled time. Click any column heading to sort by it" />
+                        </StackPanel>
+                        <TextBlock Text="Sort" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Help -->
+                <StackPanel x:Name="PanelHelp" Orientation="Horizontal" Visibility="Collapsed">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource RibbonButton}" Tag="&#xE946;" Content="About" Click="OnAbout" />
+                            <Button Style="{StaticResource RibbonButton}" Tag="&#xE838;" Content="Data folder" Click="OnOpenDataFolder"
+                                    ToolTip="Open %APPDATA%\Delay Reporter, which holds the settings, presets and mapping CSVs" />
+                        </StackPanel>
+                        <TextBlock Text="Help" Style="{StaticResource RibbonGroupLabel}" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <Grid Margin="10,10,10,0">
+        <!--
+          Status bar. Its standing text is the report's summary, worded as the workbook words it;
+          hovering over it adds the file, its period and every count in the detail line. A
+          message after an action shows here for a few seconds, then the summary returns.
+        -->
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="14,7">
+            <DockPanel>
+                <TextBlock x:Name="SelectionText" DockPanel.Dock="Right" Style="{StaticResource SecondaryText}" Margin="16,0,0,0" />
+                <TextBlock x:Name="StatusGlyph" DockPanel.Dock="Left" Text="&#xE9D2;" Style="{StaticResource IconGlyph}"
+                           FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                <TextBlock x:Name="StatusText"
+                           Text="Drop a movement sheet anywhere in this window to begin."
+                           Style="{StaticResource SecondaryText}"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTipService.ShowDuration="60000" />
+            </DockPanel>
+        </Border>
+
+        <!-- Panes -->
+        <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="330"/>
-                <ColumnDefinition Width="10"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition x:Name="OptionsColumn" Width="280" MinWidth="0" />
+                <ColumnDefinition x:Name="OptionsSplitColumn" Width="5" />
+                <ColumnDefinition Width="*" MinWidth="480" />
             </Grid.ColumnDefinitions>
 
-            <!-- Options -->
-            <Border Grid.Column="0" Style="{StaticResource Card}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
+            <!-- Options, expanded -->
+            <Border x:Name="OptionsPane"
+                    Background="{StaticResource SubtleBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="14,8,5,6">
+                        <TextBlock Text="Options" Style="{StaticResource PaneTitle}" />
+                        <Button Style="{StaticResource PaneToggle}" HorizontalAlignment="Right"
+                                Click="OnCollapseOptions" ToolTip="Collapse the options pane"
+                                AutomationProperties.Name="Collapse the options pane">
+                            <!-- Icon glyphs need their own TextBlock: a bare string Content picks up
+                                 the implicit TextBlock style and loses the icon font. -->
+                            <TextBlock Text="&#xE76B;" Style="{StaticResource IconGlyph}" FontSize="14"
+                                       Foreground="{StaticResource TextSecondaryBrush}" />
+                        </Button>
+                    </Grid>
 
-                        <TextBlock Text="Station" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
-                        <!-- Editable, so a station absent from the loaded file can still be typed. -->
-                        <ComboBox x:Name="StationBox" IsEditable="True" Text="CVG"/>
-                        <TextBlock x:Name="StationHint" Style="{StaticResource Hint}" Margin="0,3,0,0"
-                                   Text="Departures from this station are reported."/>
+                    <ScrollViewer x:Name="OptionsScroll" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="14,2,12,16">
 
-                        <TextBlock Text="Minimum delay" Style="{StaticResource SectionHeader}"/>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBox x:Name="MinimumDelayBox" Text="15" Width="56" TextChanged="OnOptionChanged"/>
-                            <TextBlock Text="minutes" VerticalAlignment="Center" Margin="6,0,0,0"
-                                       Foreground="{StaticResource MutedTextBrush}"/>
+                            <TextBlock Text="Station" Style="{StaticResource GroupLabel}" />
+                            <!-- Editable, so a station absent from the loaded file can still be typed. -->
+                            <ComboBox x:Name="StationBox" IsEditable="True" Text="CVG" AutomationProperties.Name="Station" />
+                            <TextBlock x:Name="StationHint" Style="{StaticResource Hint}" Margin="2,4,0,0"
+                                       Text="Departures from this station are reported." />
+
+                            <!-- One row: the minutes, with steppers, and what they are measured against. -->
+                            <TextBlock Text="Minimum delay" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border CornerRadius="5" BorderThickness="1" Height="30"
+                                        ToolTip="Flights delayed by less than this are left out, and counted as below threshold. 0 reports every flight that has a code.">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource CardBrush}" />
+                                            <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+                                            <Style.Triggers>
+                                                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBox x:Name="MinimumDelayBox" Text="15" Width="36" TextAlignment="Right"
+                                                 Style="{StaticResource ComboEditText}" VerticalAlignment="Center"
+                                                 TextChanged="OnOptionChanged" PreviewKeyDown="OnMinimumDelayKeyDown"
+                                                 AutomationProperties.Name="Minimum delay in minutes" />
+                                        <TextBlock Text="min" Style="{StaticResource SecondaryText}" VerticalAlignment="Center"
+                                                   Margin="4,0,4,0" />
+                                        <StackPanel VerticalAlignment="Center" Margin="0,0,2,0">
+                                            <RepeatButton Style="{StaticResource SpinButton}" Tag="&#xE70E;" Height="13"
+                                                          Click="OnMinimumDelayUp" AutomationProperties.Name="Five minutes more" />
+                                            <RepeatButton Style="{StaticResource SpinButton}" Tag="&#xE70D;" Height="13"
+                                                          Click="OnMinimumDelayDown" AutomationProperties.Name="Five minutes less" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="1" Style="{StaticResource SegmentTrack}" Margin="8,0,0,0">
+                                    <UniformGrid Rows="1">
+                                        <RadioButton x:Name="BasisCodesRadio" GroupName="Basis" Style="{StaticResource Segment}"
+                                                     Content="Coded" IsChecked="True" Checked="OnOptionChanged"
+                                                     ToolTip="Measured against the sum of the included delay codes" />
+                                        <RadioButton x:Name="BasisActualRadio" GroupName="Basis" Style="{StaticResource Segment}"
+                                                     Content="Actual" Checked="OnOptionChanged"
+                                                     ToolTip="Measured against the clock: ATD − STD" />
+                                    </UniformGrid>
+                                </Border>
+                            </Grid>
+
+                            <TextBlock Text="MX delays" Style="{StaticResource GroupLabel}" Margin="2,12,0,6" />
+                            <Border Style="{StaticResource SegmentTrack}"
+                                    ToolTip="A flight counts as MX when one of its codes maps to MX in delay-codes.csv, or when its MX box is ticked by hand.">
+                                <UniformGrid Rows="1">
+                                    <RadioButton x:Name="MxAllRadio" GroupName="Mx" Style="{StaticResource Segment}"
+                                                 Content="All" IsChecked="True" Checked="OnOptionChanged" />
+                                    <RadioButton x:Name="MxOnlyRadio" GroupName="Mx" Style="{StaticResource Segment}"
+                                                 Content="MX only" Checked="OnOptionChanged" />
+                                    <RadioButton x:Name="MxNotRadio" GroupName="Mx" Style="{StaticResource Segment}"
+                                                 Content="Not MX" Checked="OnOptionChanged" />
+                                </UniformGrid>
+                            </Border>
+
+                            <TextBlock Text="Dates" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="From" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,10,6" />
+                                <DatePicker x:Name="DateFromPicker" Grid.Column="1" Margin="0,0,0,6"
+                                            SelectedDateChanged="OnOptionChanged" AutomationProperties.Name="From date" />
+                                <TextBlock Grid.Row="1" Text="To" Style="{StaticResource SecondaryText}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <DatePicker x:Name="DateToPicker" Grid.Row="1" Grid.Column="1"
+                                            SelectedDateChanged="OnOptionChanged" AutomationProperties.Name="To date" />
+                            </Grid>
+
+                            <TextBlock Text="Movement types" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
+                            <controls:MultiSelectDropdown x:Name="MovementTypeFilter" SelectionChanged="OnOptionChanged"
+                                                          AutomationProperties.Name="Movement types" />
+                            <TextBlock Style="{StaticResource Hint}" Margin="2,4,0,0"
+                                       Text="Ground runs and tows start unticked." />
+
+                            <TextBlock Text="Operators" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
+                            <controls:MultiSelectDropdown x:Name="OperatorFilter" SelectionChanged="OnOptionChanged"
+                                                          AutomationProperties.Name="Operators" />
+
+                            <TextBlock Text="Delay codes" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
+                            <controls:MultiSelectDropdown x:Name="DelayCodeFilter" SelectionChanged="OnOptionChanged"
+                                                          AutomationProperties.Name="Delay codes" />
+                            <TextBlock Style="{StaticResource Hint}" Margin="2,4,0,0"
+                                       Text="Codes found in this file. All reports every code." />
+
+                            <TextBlock Text="Tail numbers" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
+                            <controls:MultiSelectDropdown x:Name="RegistrationFilter" SelectionChanged="OnOptionChanged"
+                                                          AutomationProperties.Name="Tail numbers" />
+                            <TextBlock Style="{StaticResource Hint}" Margin="2,4,0,0"
+                                       Text="All reports every aircraft." />
                         </StackPanel>
-                        <RadioButton x:Name="BasisCodesRadio" GroupName="Basis" IsChecked="True"
-                                     Content="sum of included delay codes" Checked="OnOptionChanged" Margin="0,6,0,0"/>
-                        <RadioButton x:Name="BasisActualRadio" GroupName="Basis"
-                                     Content="actual delay (ATD − STD)" Checked="OnOptionChanged"/>
-                        <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
-                                   Text="0 reports every flight that has a code."/>
-
-                        <TextBlock Text="Dates" Style="{StaticResource SectionHeader}"/>
-                        <StackPanel Orientation="Horizontal">
-                            <DatePicker x:Name="DateFromPicker" Width="140" SelectedDateChanged="OnOptionChanged"/>
-                            <TextBlock Text="to" VerticalAlignment="Center" Margin="6,0"/>
-                            <DatePicker x:Name="DateToPicker" Width="140" SelectedDateChanged="OnOptionChanged"/>
-                        </StackPanel>
-
-                        <TextBlock Text="Movement types" Style="{StaticResource SectionHeader}"/>
-                        <controls:MultiSelectDropdown x:Name="MovementTypeFilter" SelectionChanged="OnOptionChanged"/>
-                        <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
-                                   Text="Ground runs and tows start unticked."/>
-
-                        <TextBlock Text="Operators" Style="{StaticResource SectionHeader}"/>
-                        <controls:MultiSelectDropdown x:Name="OperatorFilter" SelectionChanged="OnOptionChanged"/>
-
-                        <TextBlock Text="Delay codes" Style="{StaticResource SectionHeader}"/>
-                        <controls:MultiSelectDropdown x:Name="DelayCodeFilter" SelectionChanged="OnOptionChanged"/>
-                        <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
-                                   Text="Codes found in this file. All reports every code."/>
-
-                        <TextBlock Text="Tail numbers" Style="{StaticResource SectionHeader}"/>
-                        <controls:MultiSelectDropdown x:Name="RegistrationFilter" SelectionChanged="OnOptionChanged"/>
-                        <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
-                                   Text="All reports every aircraft."/>
-
-                    </StackPanel>
-                </ScrollViewer>
+                    </ScrollViewer>
+                </DockPanel>
             </Border>
 
-            <!-- Preview -->
-            <Border Grid.Column="2" Style="{StaticResource Card}">
+            <!-- Options, collapsed to a rail -->
+            <Border x:Name="OptionsRail"
+                    Background="{StaticResource SubtleBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0"
+                    Visibility="Collapsed">
+                <StackPanel Margin="0,8,0,0" HorizontalAlignment="Center">
+                    <Button Style="{StaticResource PaneToggle}" Click="OnExpandOptions"
+                            ToolTip="Show the options pane" AutomationProperties.Name="Show the options pane">
+                        <TextBlock Text="&#xE76C;" Style="{StaticResource IconGlyph}" FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </Button>
+                    <TextBlock Text="&#xE71C;" Style="{StaticResource IconGlyph}" FontSize="16"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+
+            <GridSplitter x:Name="OptionsSplitter"
+                          Grid.Column="1"
+                          Width="5"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          ResizeBehavior="PreviousAndNext"
+                          ResizeDirection="Columns" />
+
+            <!-- Report -->
+            <Border Grid.Column="2" Background="{StaticResource CardBrush}">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Preview" Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
 
-                    <Border DockPanel.Dock="Top" Background="{StaticResource AccentLightBrush}"
-                            BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1"
-                            Padding="8" Margin="0,0,0,8">
-                        <TextBlock x:Name="SummaryText" TextWrapping="Wrap"
-                                   Text="Open a movement sheet to see what will be reported."/>
+                    <!--
+                      The search bar, across the top of the flights. It narrows the report like any
+                      filter, and the summary counts what it leaves out.
+                    -->
+                    <Border DockPanel.Dock="Top" Margin="12,10,12,8" Height="36" CornerRadius="6" BorderThickness="1">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{StaticResource SubtleBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource BorderStrongBrush}" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource CardBrush}" />
+                                        <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="&#xE721;" Style="{StaticResource IconGlyph}" FontSize="14"
+                                       Foreground="{StaticResource TextSecondaryBrush}" Margin="12,0,4,0" VerticalAlignment="Center" />
+                            <Button x:Name="SearchClearButton" DockPanel.Dock="Right" Style="{StaticResource IconButton}" Tag="&#xE711;"
+                                    Margin="0,0,6,0" VerticalAlignment="Center" Visibility="Collapsed"
+                                    Click="OnClearSearch" ToolTip="Clear the search (Esc)"
+                                    AutomationProperties.Name="Clear the search" />
+                            <TextBlock x:Name="SearchCount" DockPanel.Dock="Right" Style="{StaticResource SecondaryText}"
+                                       VerticalAlignment="Center" Margin="8,0,6,0" />
+                            <Grid>
+                                <TextBlock x:Name="SearchPlaceholder" FontSize="12.5" Margin="8,0,0,0"
+                                           Foreground="{StaticResource TextMutedBrush}" IsHitTestVisible="False" VerticalAlignment="Center"
+                                           Text="Search every field: flight, tail, route, times, operator, aircraft, codes, reasons, outstanding   (Ctrl+E)" />
+                                <TextBox x:Name="SearchBox" Style="{StaticResource ComboEditText}" VerticalAlignment="Center"
+                                         TextChanged="OnSearchChanged" PreviewKeyDown="OnSearchKeyDown"
+                                         AutomationProperties.Name="Search flights" />
+                            </Grid>
+                        </DockPanel>
                     </Border>
 
-                    <Border DockPanel.Dock="Top" x:Name="WarningPanel" Visibility="Collapsed"
-                            BorderBrush="{StaticResource WarningBrush}" BorderThickness="1"
-                            Padding="8" Margin="0,0,0,8">
-                        <TextBlock x:Name="WarningText" TextWrapping="Wrap"
-                                   Foreground="{StaticResource WarningBrush}"/>
+                    <Border x:Name="WarningPanel" DockPanel.Dock="Top"
+                            Visibility="Collapsed"
+                            Background="#FFF9E8"
+                            BorderBrush="#F0D48A"
+                            BorderThickness="1"
+                            CornerRadius="7"
+                            Padding="13,9"
+                            Margin="16,0,16,8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="&#xE7BA;" Style="{StaticResource IconGlyph}" FontSize="15"
+                                       Foreground="#6B4E00" Margin="0,1,10,0" VerticalAlignment="Top" />
+                            <TextBlock x:Name="WarningText" FontSize="12" TextWrapping="Wrap" Foreground="#6B4E00" />
+                        </DockPanel>
                     </Border>
 
-                    <ListView x:Name="FlightList" BorderBrush="{StaticResource BorderBrushSoft}">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="Date" Width="82" DisplayMemberBinding="{Binding DateText}"/>
-                                <GridViewColumn Header="MVT Nr" Width="72" DisplayMemberBinding="{Binding FlightNumber}"/>
-                                <GridViewColumn Header="Reg" Width="72" DisplayMemberBinding="{Binding Registration}"/>
-                                <GridViewColumn Header="To" Width="46" DisplayMemberBinding="{Binding To}"/>
-                                <GridViewColumn Header="STD" Width="52" DisplayMemberBinding="{Binding ScheduledText}"/>
-                                <GridViewColumn Header="Delay" Width="52" DisplayMemberBinding="{Binding ActualDelayText}"/>
-                                <GridViewColumn Header="Coded" Width="52" DisplayMemberBinding="{Binding CodedDelayText}"/>
+                    <!-- Hidden flights are never silent: this bar says how many and offers them back. -->
+                    <Border x:Name="HiddenBar" DockPanel.Dock="Top"
+                            Visibility="Collapsed"
+                            Background="{StaticResource AccentSoftBrush}"
+                            CornerRadius="7"
+                            Padding="13,4,6,4"
+                            Margin="16,0,16,8">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Text="&#xED1A;" Style="{StaticResource IconGlyph}" FontSize="15"
+                                       Foreground="{StaticResource AccentBrush}" Margin="0,0,10,0" VerticalAlignment="Center" />
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                <Button x:Name="HiddenShowButton" Style="{StaticResource LinkButton}" Content="Show them"
+                                        Foreground="{StaticResource AccentBrush}" Click="OnHiddenBarShow" />
+                                <Button Style="{StaticResource LinkButton}" Content="Unhide all"
+                                        Foreground="{StaticResource AccentBrush}" Click="OnUnhideAll" />
+                            </StackPanel>
+                            <TextBlock x:Name="HiddenText" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        </DockPanel>
+                    </Border>
 
-                                <!-- Three states: indeterminate leaves the flight to its codes, ticked
-                                     forces MX, empty excludes it. "MX" beside the box shows the result,
-                                     muted while it is automatic. The click is handled in code so the
-                                     cycle runs automatic, force, exclude, whatever WPF's own order. -->
-                                <GridViewColumn Header="MX" Width="58">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" Background="Transparent"
-                                                        ToolTip="{Binding MxDescription}">
-                                                <CheckBox IsThreeState="True" Margin="0" VerticalAlignment="Center"
-                                                          IsChecked="{Binding MxOverride, Mode=OneWay}"
-                                                          Click="OnMxClick"/>
-                                                <TextBlock x:Name="MxText" Text="MX" Margin="4,0,0,0"
-                                                           VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                            <DataTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding IsMxDelay}" Value="False">
-                                                    <Setter TargetName="MxText" Property="Visibility" Value="Hidden"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding MxOverride}" Value="{x:Null}">
-                                                    <Setter TargetName="MxText" Property="Foreground"
-                                                            Value="{StaticResource MutedTextBrush}"/>
-                                                </DataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
+                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0">
+                        <Grid>
+                            <ListView x:Name="FlightList"
+                                      Style="{StaticResource ReportList}"
+                                      ItemContainerStyle="{StaticResource ReportRow}"
+                                      SelectionMode="Extended"
+                                      ContextMenu="{StaticResource RowMenu}"
+                                      GridViewColumnHeader.Click="OnHeaderClick"
+                                      SelectionChanged="OnFlightSelectionChanged"
+                                      PreviewKeyDown="OnFlightListKeyDown"
+                                      AutomationProperties.Name="Flights">
+                                <ListView.View>
+                                    <GridView AllowsColumnReorder="False"
+                                              ColumnHeaderTemplate="{StaticResource HeaderTemplate}"
+                                              ColumnHeaderContainerStyle="{StaticResource ReportHeader}">
 
-                                <GridViewColumn x:Name="OperatorColumn" Header="OPR" Width="120"
-                                                DisplayMemberBinding="{Binding OperatorDisplay}"/>
+                                        <!-- The row's own selection, shown as a box so several can be
+                                             ticked without holding Ctrl. The header box selects all or none. -->
+                                        <!-- Its own header template, or the grid's sortable one would
+                                             apply to it; being inside a template, the box is found on Loaded. -->
+                                        <GridViewColumn Width="38">
+                                            <GridViewColumn.HeaderTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Style="{StaticResource TreeCheck}" Margin="3,0,0,0"
+                                                              Loaded="OnSelectAllCheckLoaded"
+                                                              Click="OnSelectAllHeaderClick" ToolTip="Select all or none"
+                                                              AutomationProperties.Name="Select all flights" />
+                                                </DataTemplate>
+                                            </GridViewColumn.HeaderTemplate>
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Style="{StaticResource TreeCheck}" Margin="5,0,0,0" Focusable="False"
+                                                              IsChecked="{Binding IsSelected, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=ListViewItem}}"
+                                                              AutomationProperties.Name="{Binding FlightNumber, StringFormat=Select {0}}" />
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
 
-                                <!-- One run per code, so codes the Delay codes filter did not choose can
-                                     be dimmed or hidden without touching the others. -->
-                                <GridViewColumn Header="Codes" Width="300">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <ItemsControl Focusable="False">
-                                                <ItemsControl.ItemsSource>
-                                                    <MultiBinding Converter="{StaticResource CodeParts}">
-                                                        <Binding/>
-                                                        <Binding Path="UnselectedCodes"
-                                                                 RelativeSource="{RelativeSource AncestorType=Window}"/>
-                                                    </MultiBinding>
-                                                </ItemsControl.ItemsSource>
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <StackPanel Orientation="Horizontal"/>
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock x:Name="Part" Text="{Binding Text}"/>
-                                                        <DataTemplate.Triggers>
-                                                            <DataTrigger Binding="{Binding IsDimmed}" Value="True">
-                                                                <Setter TargetName="Part" Property="Foreground"
-                                                                        Value="{StaticResource MutedTextBrush}"/>
-                                                            </DataTrigger>
-                                                        </DataTemplate.Triggers>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
+                                        <!-- Right-click the Date heading to choose the format it prints in. -->
+                                        <GridViewColumn x:Name="DateColumn" Width="116" DisplayMemberBinding="{Binding DateText}"
+                                                        HeaderContainerStyle="{StaticResource DateHeader}" />
+                                        <GridViewColumn x:Name="FlightColumn" Width="92" DisplayMemberBinding="{Binding FlightNumber}" />
+                                        <GridViewColumn x:Name="RegColumn" Width="100" DisplayMemberBinding="{Binding Registration}" />
+                                        <GridViewColumn x:Name="ToColumn" Width="62" DisplayMemberBinding="{Binding To}" />
+                                        <GridViewColumn x:Name="StdColumn" Width="70" DisplayMemberBinding="{Binding ScheduledText}" />
+                                        <GridViewColumn x:Name="DelayColumn" Width="112" CellTemplate="{StaticResource DelayCell}" />
+
+                                        <!-- False until a mapped code tags the flight MX, true once one does.
+                                             "MX" beside the box shows the result, muted while it comes from
+                                             the mapping rather than a manual click. The click is handled in
+                                             code: it flips the shown value, and only records an override when
+                                             that differs from what the mapping would say anyway. -->
+                                        <GridViewColumn x:Name="MxColumn" Width="84">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Background="Transparent"
+                                                                ToolTip="{Binding MxDescription}">
+                                                        <CheckBox Margin="0" VerticalAlignment="Center"
+                                                                  IsChecked="{Binding IsMxDelay, Mode=OneWay}"
+                                                                  Click="OnMxClick"
+                                                                  AutomationProperties.Name="{Binding FlightNumber, StringFormat=Mark {0} as MX}" />
+                                                        <TextBlock x:Name="MxText" Text="MX" Margin="-4,0,0,0" FontSize="12"
+                                                                   FontWeight="SemiBold" VerticalAlignment="Center"
+                                                                   Foreground="{StaticResource DangerBrush}" />
+                                                    </StackPanel>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMxDelay}" Value="False">
+                                                            <Setter TargetName="MxText" Property="Visibility" Value="Hidden" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding MxOverride}" Value="{x:Null}">
+                                                            <Setter TargetName="MxText" Property="Foreground"
+                                                                    Value="{StaticResource TextMutedBrush}" />
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+
+                                        <GridViewColumn x:Name="OperatorColumn" Width="130"
+                                                        DisplayMemberBinding="{Binding OperatorDisplay}" />
+
+                                        <!-- One run per code, so codes the Delay codes filter did not choose can
+                                             be dimmed or hidden without touching the others. -->
+                                        <GridViewColumn x:Name="CodesColumn" Width="260">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <ItemsControl Focusable="False">
+                                                        <ItemsControl.ItemsSource>
+                                                            <MultiBinding Converter="{StaticResource CodeParts}">
+                                                                <Binding />
+                                                                <Binding Path="UnselectedCodes"
+                                                                         RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                            </MultiBinding>
+                                                        </ItemsControl.ItemsSource>
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <StackPanel Orientation="Horizontal" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock x:Name="Part" Text="{Binding Text}" />
+                                                                <DataTemplate.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsDimmed}" Value="True">
+                                                                        <Setter TargetName="Part" Property="Foreground"
+                                                                                Value="{StaticResource TextMutedBrush}" />
+                                                                    </DataTrigger>
+                                                                </DataTemplate.Triggers>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+
+                                        <!-- What is still owed, as the email lists it. -->
+                                        <GridViewColumn x:Name="OutstandingColumn" Width="250">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding OutstandingText}" FontSize="12"
+                                                               Foreground="{StaticResource DangerBrush}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip="{Binding OutstandingToolTip}" />
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+
+                            <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                        IsHitTestVisible="False">
+                                <TextBlock x:Name="EmptyGlyph" Text="&#xE8E5;" Style="{StaticResource IconGlyph}"
+                                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="48"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock x:Name="EmptyTitle" Text="Nothing loaded yet" Foreground="{StaticResource TextMutedBrush}"
+                                           FontSize="13.5" Margin="0,12,0,0" HorizontalAlignment="Center" />
+                                <TextBlock x:Name="EmptyDetail" Text="Drop a movement sheet anywhere in this window, or press Ctrl+O."
+                                           Foreground="{StaticResource TextMutedBrush}" FontSize="12" Margin="0,5,0,0"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                 </DockPanel>
             </Border>
         </Grid>
     </DockPanel>
+
+        <!-- Covers the whole window while a movement sheet is dragged over it, as OFT Scrubber does. -->
+        <Border x:Name="DropOverlay" Visibility="Collapsed" IsHitTestVisible="False">
+            <Border.Background>
+                <SolidColorBrush Color="{StaticResource AccentColor}" Opacity="0.6" />
+            </Border.Background>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="&#xE8E5;"
+                           Style="{StaticResource IconGlyph}"
+                           FontSize="46"
+                           Foreground="White"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Drop to open"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="White"
+                           Margin="0,12,0,0"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Grid>
 </Window>

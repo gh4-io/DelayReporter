@@ -16,17 +16,31 @@ namespace DelayReporter.Core.Report
     {
         public const string Separator = "   ·   ";
 
-        public static IReadOnlyList<KeyValuePair<string, string>> Metrics(ReportModel model) =>
-            new List<KeyValuePair<string, string>>
+        /// <summary>
+        /// The default figures. Flights left out by a search, hidden by hand or left out of a
+        /// "report selected" run join the list whenever they apply: those are decisions a person
+        /// made about this particular report, so they belong on its face, not in the detail.
+        /// </summary>
+        public static IReadOnlyList<KeyValuePair<string, string>> Metrics(ReportModel model)
+        {
+            var metrics = new List<KeyValuePair<string, string>>
             {
                 Metric(model.Station + " departures", model.StationDepartures),
                 Metric("No coded delay", model.ExcludedNoCodedDelay),
                 Metric("With coded delay", model.FlightsWithCodedDelay),
                 Metric("With MX coded delay", model.FlightsWithMxDelay),
-                Metric("Below threshold", model.ExcludedByThreshold + " flights"),
-                Metric("Flights reported", model.ReportedFlights),
-                Metric("Delay events", model.ReportedEvents),
+                Metric("Below threshold", Flights(model.ExcludedByThreshold)),
             };
+            if (model.Options.SearchText.Trim().Length > 0)
+                metrics.Add(Metric("Not matching \"" + model.Options.SearchText.Trim() + "\"", Flights(model.ExcludedBySearch)));
+            if (model.ExcludedHidden > 0)
+                metrics.Add(Metric("Hidden by hand", Flights(model.ExcludedHidden)));
+            if (model.ExcludedNotSelected > 0)
+                metrics.Add(Metric("Not selected", Flights(model.ExcludedNotSelected)));
+            metrics.Add(Metric("Flights reported", model.ReportedFlights));
+            metrics.Add(Metric("Delay events", model.ReportedEvents));
+            return metrics;
+        }
 
         public static IReadOnlyList<KeyValuePair<string, string>> Detail(ReportModel model) =>
             new List<KeyValuePair<string, string>>
@@ -38,6 +52,10 @@ namespace DelayReporter.Core.Report
                 Metric("by operator", model.ExcludedByOperator),
                 Metric("by tail number", model.ExcludedByRegistration),
                 Metric("by delay code", model.ExcludedByDelayCode),
+                Metric("by MX filter", model.ExcludedByMx),
+                Metric("by search", model.ExcludedBySearch),
+                Metric("hidden by hand", model.ExcludedHidden),
+                Metric("not selected", model.ExcludedNotSelected),
                 Metric("Dropped, all codes excluded", model.FlightsDroppedAllCodesExcluded),
                 Metric("Excluded by mapper", model.ExcludedEvents + " events"),
                 Metric("Total coded delay", model.TotalCodedDelayText),
@@ -88,6 +106,17 @@ namespace DelayReporter.Core.Report
             if (current.Length > 0) lines.Add(current);
             return lines;
         }
+
+        /// <summary>
+        /// "MX delays only" or "MX delays left out" when the MX filter is set, empty otherwise.
+        /// Printed with the report's own description, so a narrowed report says it is one.
+        /// </summary>
+        public static string MxFilterText(ReportOptions options) =>
+            options.MxFilter == MxFilter.MxOnly ? "MX delays only"
+            : options.MxFilter == MxFilter.NotMx ? "MX delays left out"
+            : string.Empty;
+
+        private static string Flights(int count) => count == 1 ? "1 flight" : count.ToString(CultureInfo.InvariantCulture) + " flights";
 
         private static string List(IEnumerable<string> values)
         {

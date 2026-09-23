@@ -29,6 +29,9 @@ namespace DelayReporter.Core
 
         public string Path_ => _path;
 
+        /// <summary>The comment written at the top of the file.</summary>
+        public string Header { get; set; } = "Delay Reporter preferences. Delete this file to restore defaults.";
+
         public void Load()
         {
             _values.Clear();
@@ -58,7 +61,7 @@ namespace DelayReporter.Core
             {
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(_path)!);
                 var text = new StringBuilder();
-                text.AppendLine("# Delay Reporter preferences. Delete this file to restore defaults.");
+                text.Append("# ").AppendLine(Header);
                 foreach (KeyValuePair<string, string> pair in _values)
                     text.Append(pair.Key).Append('=').AppendLine(pair.Value);
                 File.WriteAllText(_path, text.ToString(), new UTF8Encoding(false));

@@ -36,7 +36,10 @@ rule ICS Scrubber applies to its scrub pass.
 | `Core/Movement` | `MovementReader` (title rows, header discovery, footer recognition, station detection); `MovementSheet`/`MovementRow`; `ClockTime` (times with a status letter, midnight-safe delay arithmetic); `DelayCodeParser` (the packed delay cell). |
 | `Core/Mapping` | `MappingTable` (code to entry, with zero-padding normalisation); `MappingStore` (seed-on-first-run, never overwrite). |
 | `Core/Report` | `ReportOptions` (the filters); `ReportBuilder` (narrowing and resolving); `ReportModel` (the finished report); `TextWrap`; `ReportWriter` (the workbook layout). |
-| `MainWindow`, `Views`, `Themes` | Code-behind UI, About dialog, family theme. |
+| `Core/Email` | `DelayEmail` (the compact email, from the same `ReportModel`); `EmailDraft`; `EmlDraftWriter` (MIME draft marked unsent, ported from OFT Scrubber). |
+| `Core` | `SettingsStore` (plain key=value preferences); `Presets` (built-in presets and the user's saved ones). |
+| `MainWindow`, `Views`, `Controls` | Code-behind UI: ribbon, options pane, flight grid; Settings, About and preset dialogs; the filter dropdown, column header model and Codes cell converter. |
+| `Themes` | `Fluent.xaml` and `Shell.xaml`, identical to the siblings'; `Report.xaml`, this application's own controls. |
 
 ## Key mechanisms
 
@@ -63,8 +66,9 @@ a code, so the sheet's `09` and the published list's `9` are one key while `93A`
 edits are never overwritten. An unmapped code is labelled `(unmapped)` and surfaced on the summary.
 
 **Filtering.** `ReportBuilder` narrows in a fixed order — station, movement type, date and
-identity filters, coded delay present, mapper exclusions, code filter, threshold — recording a
-count at each step. Those counts reach the summary, so a report that came out thin can be explained
+identity filters, coded delay present, mapper exclusions, code filter, threshold, then the
+search, hidden rows and a "report selected" restriction — recording a count at each step. The
+flights are then sorted by the chosen column, so the preview, workbook and email share one order. Those counts reach the summary, so a report that came out thin can be explained
 rather than guessed at.
 
 **Writing.** `ReportWriter` builds a `SheetSpec`; `XlsxWriter` turns it into a package. The package

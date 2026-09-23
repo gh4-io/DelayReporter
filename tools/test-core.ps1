@@ -148,6 +148,111 @@ try {
     Assert ($excluded.Flights.Count -gt 0) 'flights keep their remaining codes'
     $entry.Exclude = $false
 
+    # ---- order, search and hand decisions ----------------------------------
+    Write-Output ''
+    Write-Output '== order, search and hand decisions =='
+    function Row($m, $flight) { ($m.FlightsIncludingHidden | Where-Object { $_.FlightNumber -eq $flight }).SourceRowNumber }
+    function Options {
+        $o = New-Object DelayReporter.Core.Report.ReportOptions
+        $o.Station = 'CVG'
+        $o.MinimumDelayMinutes = 15
+        $o.SelectDefaultMovementTypes($sheet)
+        $o
+    }
+
+    $sorted = Options
+    $sorted.SortColumn = [DelayReporter.Core.Report.ReportSortColumn]::ActualDelay
+    $sorted.SortDescending = $true
+    $byDelay = [DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $sorted)
+    AssertEqual 'ZZ104' $byDelay.Flights[0].FlightNumber 'sorted by delay, descending, the 11:08 flight leads'
+    AssertEqual $model.ReportedFlights $byDelay.ReportedFlights 'sorting changes the order, never the count'
+
+    $hide = Options
+    [void]$hide.HiddenRows.Add((Row $model 'ZZ101'))
+    $hidden = [DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $hide)
+    AssertEqual ($model.ReportedFlights - 1) $hidden.ReportedFlights 'a hidden flight leaves the report'
+    AssertEqual 1 $hidden.ExcludedHidden 'and is counted as hidden by hand'
+    Assert ($hidden.HiddenFlights[0].IsHidden) 'it is kept, marked hidden, for the preview'
+    AssertEqual $model.ReportedFlights $hidden.FlightsIncludingHidden.Count 'the preview can still list it'
+    $hiddenMetric = [DelayReporter.Core.Report.ReportSummary]::Metrics($hidden) | Where-Object { $_.Key -eq 'Hidden by hand' }
+    AssertEqual '1 flight' $hiddenMetric.Value 'the summary says so on its face'
+
+    $select = Options
+    [void]$select.SelectedRows.Add((Row $model 'ZZ101'))
+    $selected = [DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $select)
+    AssertEqual 1 $selected.ReportedFlights 'report selected keeps only the selection'
+    AssertEqual ($model.ReportedFlights - 1) $selected.ExcludedNotSelected 'and counts the rest as not selected'
+
+    $search = Options
+    $search.SearchText = '93A'
+    $found = [DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $search)
+    AssertEqual 2 $found.ReportedFlights 'searching 93A finds the two flights carrying it'
+    AssertEqual ($model.ReportedFlights - 2) $found.ExcludedBySearch 'the others are counted as not matching'
+    $search.SearchText = 'rotation xxd'
+    AssertEqual 'ZZ104' ([DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $search)).Flights[0].FlightNumber `
+        'every word must match, across the reason and the route'
+    # Only the coded/actual mismatch's outstanding item says this.
+    $search.SearchText = 'does not match'
+    AssertEqual 'ZZ108' ([DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $search)).Flights[0].FlightNumber `
+        'what is outstanding is searched too'
+
+    $mx = Options
+    $mx.MxFilter = [DelayReporter.Core.Report.MxFilter]::MxOnly
+    $mxOnly = [DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $mx)
+    AssertEqual $model.FlightsWithMxDelay $mxOnly.ReportedFlights 'MX only keeps exactly the MX flights'
+    Assert (($mxOnly.Flights | Where-Object { -not $_.IsMxDelay }).Count -eq 0) 'and nothing else'
+    AssertEqual ($model.ReportedFlights - $model.FlightsWithMxDelay) $mxOnly.ExcludedByMx 'the rest are counted as left out by the MX filter'
+    [void]$mx.MxOverrides.Add((Row $model 'ZZ101'), $true)
+    AssertEqual ($model.FlightsWithMxDelay + 1) ([DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $mx)).ReportedFlights `
+        'a flight ticked MX by hand counts as MX'
+    $mx.MxFilter = [DelayReporter.Core.Report.MxFilter]::NotMx
+    $mx.MxOverrides.Clear()
+    AssertEqual ($model.ReportedFlights - $model.FlightsWithMxDelay) ([DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $mx)).ReportedFlights `
+        'not MX keeps the rest'
+    Assert (-not ($mxOnly.Warnings -match 'category MX')) 'the seeded list marks MX codes, so no warning'
+
+    # A delay-codes.csv from before the category column marks nothing MX.
+    $saved = @{}
+    foreach ($e in $store.DelayCodes.Entries) { $saved[$e.Code] = $e.Category; $e.Category = '' }
+    $bare = Options
+    $bare.MxFilter = [DelayReporter.Core.Report.MxFilter]::MxOnly
+    $noCategory = [DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $bare)
+    Assert (@($noCategory.Warnings | Where-Object { $_ -match 'category MX' }).Count -eq 1) 'an MX filter over a list with no MX codes says why it is empty'
+    foreach ($e in $store.DelayCodes.Entries) { $e.Category = $saved[$e.Code] }
+
+    $mxSpec = [DelayReporter.Core.Report.ReportWriter]::BuildSheet($mxOnly)
+    AssertEqual ($mxOnly.ReportedFlights + $mxSpec.HeaderRow) $mxSpec.LastRow 'an MX-only workbook holds one row per MX flight'
+
+    $dates = Options
+    $dates.DateFormat = 'yyyy-MM-dd'
+    AssertEqual '2026-09-14' ([DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $dates)).Flights[0].DateText `
+        'the Date column can be reformatted'
+    AssertEqual '14.09.2026' $model.Flights[0].DateText 'and prints as in the file by default'
+
+    $mismatch = $model.Flights | Where-Object { $_.Reconciles -eq $false } | Select-Object -First 1
+    # The not-equal sign by code point: Windows PowerShell reads this file as ANSI.
+    AssertEqual ('0:32 ' + [char]0x2260 + ' 0:25') $mismatch.DelayDisplay 'a coded/actual mismatch shows both figures'
+    AssertEqual '0:42' $model.Flights[0].DelayDisplay 'an agreeing flight shows one figure'
+
+    # ---- the email draft ---------------------------------------------------
+    Write-Output ''
+    Write-Output '== the email draft =='
+    $attachment = New-Object DelayReporter.Core.Email.EmailAttachment('report.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        [DelayReporter.Core.Report.ReportWriter]::ToBytes($hidden))
+    $draft = [DelayReporter.Core.Email.DelayEmail]::Compose($hidden, 'ops@example.com; not an address', '', $attachment)
+    Assert ($draft.Subject -match '^CVG departure delays') "the subject names the station: $($draft.Subject)"
+    Assert ($draft.Html -match 'ZZ104') 'the table lists the reported flights'
+    Assert (-not ($draft.Html -match 'ZZ101')) 'but not the hidden one'
+    Assert ($draft.Html -match '1 flight hidden by hand is not listed') 'and says a flight was hidden'
+    Assert ($draft.PlainText -match 'Outstanding: record ULD ID') 'the plain text carries what is outstanding'
+    $notes = $null
+    $eml = [Text.Encoding]::ASCII.GetString([DelayReporter.Core.Email.EmlDraftWriter]::ToBytes($draft, [ref]$notes))
+    Assert ($eml.StartsWith('X-Unsent: 1')) 'the draft opens unsent in the mail app'
+    Assert ($eml -match 'To: <ops@example.com>') 'a plain address is kept'
+    AssertEqual 1 $notes.Count 'an address that is not one is left out with a note'
+    Assert ($eml -match 'multipart/mixed' -and $eml -match 'filename="report.xlsx"') 'the workbook is attached'
+
     # ---- the workbook ------------------------------------------------------
     Write-Output ''
     Write-Output '== the workbook =='

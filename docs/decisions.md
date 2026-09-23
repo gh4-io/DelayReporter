@@ -176,6 +176,79 @@ an operational report is worse than an honest "unmapped" tag, so the bar for add
 confirmation, not plausibility — and an unmapped code costs nothing but a lookup once the real
 answer is known.
 
+## The family's theme, taken whole
+
+ICS Scrubber and OFT Scrubber share `Fluent.xaml` and `Shell.xaml` byte for byte. Delay Reporter
+now carries the same two files unchanged, and everything only it needs (the flight grid, radio
+buttons, the editable station box, date pickers, context menus and the settings switches) lives in
+a third dictionary, `Report.xaml`. Keeping the shared files untouched means a change to the
+family's look can be copied between the three repositories and checked with a plain diff.
+
+## Only what the list shows is reported
+
+Sorting, searching and hiding all change what the list shows, and the rule is that the list is
+the report: the workbook and the email contain exactly the listed flights, in the listed order. So
+none of them is a screen-only view trick. Each is a `ReportOptions` field applied in
+`ReportBuilder`, and each count reaches the summary.
+
+The alternative, a search or a hidden row that affected only the screen, would let the preview and
+the saved workbook disagree, which is the one thing the preview exists to prevent. Worse, it would
+make the rule "only what is visible is reported" untrue in the most dangerous direction: a user who
+searched, forgot, and pressed Save would lose flights with nothing saying so.
+
+The search, hidden rows and "report selected" run after every other filter, so a flight is only
+counted against a hand decision when the filters would otherwise have reported it. They join the
+default summary, not the optional detail line, whenever they apply. They are decisions a person
+made about this particular report, and whoever reads it should see them without asking.
+
+## Email as a draft, with the workbook attached
+
+The email is written as an `.eml` marked `X-Unsent: 1` and handed to the default mail app, the same
+mechanism OFT Scrubber proved. It needs no Outlook automation, no COM reference and no
+credentials, so the single-executable promise holds, and nothing is ever sent without the user
+pressing Send in their own mail app.
+
+Attaching the workbook as well as listing the flights inline is not too much, because the two do
+different jobs. The inline table is for the people who have to act, one line per flight with
+what is still owed. The attachment is the audited record, with the full summary, the aircraft
+column and room for notes. It costs a few kilobytes. The one risk is a reader treating the inline
+table as the whole story, so the email states how many flights were left out and closes with the
+same summary line the workbook prints. The attachment is on by default and can be switched off
+under Settings > Email.
+
+## One delay column, showing both figures only when they differ
+
+The preview had a Delay column (the clock) and a Coded column (the sum of the durations), and on
+real files they agree on nearly every flight, so the second column mostly repeated the first. But
+the disagreement is the whole reason Coded existed: it is how a miscoded delay gets noticed. The
+two became one column that shows the clock delay, and `0:32 ≠ 0:25` in red when the codes do not
+add up. Nothing is hidden and a column is freed. The workbook already worked this way, with one
+Delay column and a red flag on a mismatch. The minimum delay can still be measured against either
+figure, which is why its Coded / Actual switch stayed.
+
+## The MX filter warns when nothing can be MX
+
+MX is a category in `delay-codes.csv`, and the user's copy of that file always wins over the seed.
+A copy written before 0.3.0 has no `category` column at all, so nothing in it is MX, and an MX-only
+report from it would come out empty with no reason given. Rather than read the seed behind the
+user's back, the report warns that no code is marked MX and says how to fix the file. Flights the
+filter leaves out are counted in the detail line like the other option filters, and the workbook
+subtitle and the email say the report is MX only, so a narrowed report cannot pass for a full one.
+
+## The summary lives in the status bar
+
+The summary figures took a band of space above the flights that the list needed more. They moved
+to the status bar as one line, worded as before, with every detail count in its tooltip. Messages
+about what was just done appear in the same place for a few seconds and then give way to the
+summary, so it is never out of sight for long.
+
+## Presets never silently widen a report
+
+A preset's list values are ticked by name in the open file. Nothing ticked means no restriction,
+so a preset asking for an operator the file does not hold would quietly report every operator. The
+window names any value it could not find, and says outright when a list has ended up narrowing
+nothing. Dates are never part of a preset: they belong to the file.
+
 ## No continuous integration
 
 Neither sibling has CI, the build is Windows-only, and a workflow that cannot build a WPF

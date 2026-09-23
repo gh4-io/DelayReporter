@@ -64,6 +64,21 @@ namespace DelayReporter.Core.Report
         public string CodedDelayText => DurationFormat.Format(CodedMinutes);
 
         /// <summary>
+        /// The one delay figure the preview shows: the clock delay, with the coded total beside
+        /// it only when the two disagree, since that disagreement is the reason to show both.
+        /// </summary>
+        public string DelayDisplay =>
+            !ActualDelayMinutes.HasValue ? CodedDelayText
+            : Reconciles == false ? ActualDelayText + " ≠ " + CodedDelayText
+            : ActualDelayText;
+
+        /// <summary>Explains a mismatch, for the preview's tooltip; null when the figures agree.</summary>
+        public string? DelayToolTip =>
+            Reconciles == false
+                ? $"{ActualDelayText} by the clock (ATD − STD), but the delay codes add up to {CodedDelayText}."
+                : !ActualDelayMinutes.HasValue ? "No clock delay could be worked out; this is the coded total." : null;
+
+        /// <summary>
         /// True when the coded durations add up to the clock delay, false when they do not,
         /// null when the clock delay could not be computed.
         /// </summary>
@@ -88,6 +103,75 @@ namespace DelayReporter.Core.Report
         /// </summary>
         public bool? MxOverride { get; set; }
 
+        /// <summary>
+        /// The user hid this flight by hand. It stays in <see cref="ReportModel.HiddenFlights"/>
+        /// so the preview can show it and bring it back, but never reaches the report.
+        /// </summary>
+        public bool IsHidden { get; set; }
+
+        /// <summary>
+        /// What is still owed on this flight before its delay can be signed off: supplementary
+        /// information the codes oblige, a coded total that disagrees with the clock, a code
+        /// the list does not know, or a delay cell that could not be read cleanly.
+        /// </summary>
+        public List<string> OutstandingItems
+        {
+            get
+            {
+                var items = new List<string>(SupplementaryPrompts);
+                if (Reconciles == false)
+                    items.Add($"coded {CodedDelayText} does not match actual {ActualDelayText}");
+                foreach (string code in Events.Where(e => e.IsUnmapped).Select(e => e.Code).Distinct())
+                    items.Add($"code {code} is not in the code list");
+                if (!string.IsNullOrEmpty(Warning)) items.Add(Warning!);
+                return items;
+            }
+        }
+
+        /// <summary>
+        /// True when every word of the search appears somewhere in the flight: any column the
+        /// preview or the workbook shows, the mapped names behind the codes, and the raw cell.
+        /// Case is ignored, and an empty search matches everything.
+        /// </summary>
+        public bool MatchesSearch(string? search)
+        {
+            string[] words = (search ?? string.Empty)
+                .Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0) return true;
+
+            var fields = new List<string>
+            {
+                DateText, FlightNumber, Registration, From, To, ScheduledText, ActualText,
+                ActualDelayText, CodedDelayText, Operator, OperatorLabel, EquipmentCode, AircraftLabel,
+                RawDelayText, Warning ?? string.Empty,
+            };
+            if (IsMxDelay) fields.Add(MxCategory);
+            foreach (ReportDelayEvent e in Events)
+            {
+                fields.Add(e.Code);
+                fields.Add(e.Label);
+                fields.Add(e.Duration);
+                fields.Add(e.Category);
+            }
+            fields.AddRange(OutstandingItems);
+
+            string haystack = string.Join("\n", fields);
+            return words.All(w => haystack.IndexOf(w, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        /// <summary>The outstanding items on one line, for the preview's Outstanding column.</summary>
+        public string OutstandingText => string.Join("; ", OutstandingItems);
+
+        /// <summary>The outstanding items one per line, or null so an empty cell shows no tooltip.</summary>
+        public string? OutstandingToolTip
+        {
+            get
+            {
+                List<string> items = OutstandingItems;
+                return items.Count == 0 ? null : string.Join(Environment.NewLine, items);
+            }
+        }
+
         /// <summary>Any reported code on this flight carries the MX category.</summary>
         public bool IsMxCoded => Events.Any(e => e.IsMx);
 
@@ -99,14 +183,14 @@ namespace DelayReporter.Core.Report
         {
             get
             {
-                if (MxOverride == true) return "Forced MX for this file. Click to exclude it.";
-                if (MxOverride == false) return "Excluded from MX for this file. Click to return to automatic.";
-
                 List<string> codes = Events.Where(e => e.IsMx).Select(e => e.Code).Distinct().ToList();
-                string auto = codes.Count > 0
-                    ? "Automatic: MX, from code " + string.Join(", ", codes) + "."
-                    : "Automatic: no MX code on this flight.";
-                return auto + " Click to force MX.";
+                string basis = MxOverride.HasValue
+                    ? "Marked by hand for this file."
+                    : codes.Count > 0
+                        ? "From code " + string.Join(", ", codes) + "."
+                        : "No MX code on this flight.";
+                string next = IsMxDelay ? "Click to unmark." : "Click to mark MX.";
+                return basis + " " + next;
             }
         }
     }
@@ -143,6 +227,16 @@ namespace DelayReporter.Core.Report
         public ReportOptions Options { get; set; } = new ReportOptions();
 
         public List<ReportFlight> Flights { get; } = new List<ReportFlight>();
+
+        /// <summary>
+        /// Flights that passed every filter but were hidden by hand, in report order. They are
+        /// not reported; they are kept so the preview can show them and the summary can count them.
+        /// </summary>
+        public List<ReportFlight> HiddenFlights { get; } = new List<ReportFlight>();
+
+        /// <summary>Reported and hidden flights together, in report order, for the preview.</summary>
+        public List<ReportFlight> FlightsIncludingHidden { get; } = new List<ReportFlight>();
+
         public List<CodeTally> CodeTallies { get; } = new List<CodeTally>();
         public List<OperatorTally> OperatorTallies { get; } = new List<OperatorTally>();
         public List<string> Warnings { get; } = new List<string>();
@@ -165,6 +259,18 @@ namespace DelayReporter.Core.Report
         public int FlightsDroppedAllCodesExcluded { get; set; }
         public int ExcludedByDelayCode { get; set; }
         public int ExcludedByThreshold { get; set; }
+
+        /// <summary>Flights left out by the MX filter.</summary>
+        public int ExcludedByMx { get; set; }
+
+        /// <summary>Flights that met every filter but did not match the search text.</summary>
+        public int ExcludedBySearch { get; set; }
+
+        /// <summary>Flights that met every filter but were left out of a "report selected" run.</summary>
+        public int ExcludedNotSelected { get; set; }
+
+        public int ExcludedHidden => HiddenFlights.Count;
+
         public int ExcludedEvents { get; set; }
 
         public int ReportedFlights => Flights.Count;
@@ -182,6 +288,7 @@ namespace DelayReporter.Core.Report
         public int MxOverriddenFlights => Flights.Count(f => f.MxOverride.HasValue);
 
         public int FlightsRequiringSupplementary => Flights.Count(f => f.SupplementaryPrompts.Count > 0);
+        public int FlightsWithOutstandingItems => Flights.Count(f => f.OutstandingItems.Count > 0);
         public int ReconciliationMismatches => Flights.Count(f => f.Reconciles == false);
 
         public IEnumerable<CodeTally> UnmappedCodes => CodeTallies.Where(c => c.IsUnmapped);

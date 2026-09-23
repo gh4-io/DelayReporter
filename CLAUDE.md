@@ -3,6 +3,31 @@
 Delay Reporter parses movement sheets and writes a printable departure-delay workbook. It is the
 third tool in the family started by ICS Scrubber and OFT Scrubber, and follows their conventions.
 
+## Dynamic Model Routing Instructions
+
+Analyze incoming user tasks and categorize their complexity before proceeding. Optimize for speed, capability, and token cost by adhering strictly to this routing logic:
+
+1. USE HAIKU FOR:
+- Single-file quick edits, typos, and formatting fixes.
+- Adding simple comments or docstrings.
+- Generating file structure summaries or fast file lookups.
+- Low-complexity, localized utility functions.
+
+2. USE SONNET FOR:
+- General feature development and standard day-to-day coding.
+- Writing unit tests and standard bug fixes.
+- Refactoring well-defined, single or dual-file components.
+- General explanations and technical writing.
+
+3. USE OPUS FOR:
+- Complex system architecture and high-level design decisions.
+- Tracing subtle, multi-file bugs or deep performance bottlenecks.
+- Database migrations, security audits, and framework upgrades.
+- Tasks requiring heavy sustained reasoning across extensive contexts.
+
+If working in an environment supporting subagent routing (such as [Claude Code Subagent Routing](https://medium.com/@roanmonteiro/claude-code-subagent-model-routing-stop-paying-for-opus-on-haiku-work-ee76dc32cb88)), automatically assign subagents the minimum viable model tier matching the criteria above.
+
+
 ## The promises this project makes
 
 These are the constraints everything else is judged against. Breaking one is a release decision,
@@ -28,8 +53,10 @@ src/DelayReporter/Core/      no WPF reference, ever
   Spreadsheet/   XLSX and CSV reading, the hand written XLSX writer, the fixed style table
   Movement/      the movement sheet format: header discovery, clock arithmetic, delay parsing
   Mapping/       the editable CSV tables and where they live
-  Report/        filtering, tallies and the workbook layout
-src/DelayReporter/           WPF shell: window, views, themes
+  Report/        filtering, search, sort, tallies and the workbook layout
+  Email/         the compact email and the .eml draft writer
+src/DelayReporter/           WPF shell: window, views, controls, themes
+  Themes/        Fluent.xaml and Shell.xaml match the siblings byte for byte; Report.xaml is ours
 tools/                       PowerShell checks, in place of a test framework
 docs/                        architecture, decisions, format notes, release process
 ```
@@ -51,6 +78,14 @@ will be written, so the preview and the saved workbook cannot disagree.
   code. All lookups go through `MappingTable.Normalize`.
 - **Times carry no date.** A departure after midnight shows an ATD earlier than its STD. Delay is
   always measured forward; never let it go negative.
+- **The list is the report.** Sort, search, hidden rows and "report selected" are `ReportOptions`
+  fields applied in `ReportBuilder`, never screen-only filtering, and each exclusion is counted on
+  the summary. A view-only filter would let the preview and the workbook disagree.
+- **Don't edit Fluent.xaml or Shell.xaml.** They are the family's shared theme; put new styles in
+  `Report.xaml`. XAML comments must not contain double hyphens.
+- **Change handlers fire during InitializeComponent.** A text box's initial `Text` and a checked
+  radio button raise their events before later controls exist, so option handlers return until
+  the window is loaded.
 - **Movement sheets use inline strings.** The sample ships a `sharedStrings` part but writes its
   data as `inlineStr`. The reader handles both; do not assume either.
 

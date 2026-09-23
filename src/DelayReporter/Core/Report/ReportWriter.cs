@@ -94,6 +94,16 @@ namespace DelayReporter.Core.Report
         public static void Write(string path, ReportModel model) =>
             XlsxWriter.Write(path, BuildSheet(model));
 
+        /// <summary>The same workbook in memory, for attaching to an email draft.</summary>
+        public static byte[] ToBytes(ReportModel model)
+        {
+            using (var stream = new System.IO.MemoryStream())
+            {
+                XlsxWriter.WriteTo(stream, BuildSheet(model));
+                return stream.ToArray();
+            }
+        }
+
         private static void AddColumns(SheetSpec sheet, ReportOptions options)
         {
             sheet.Columns.Add(new ColumnSpec("Date", 10));
@@ -122,6 +132,8 @@ namespace DelayReporter.Core.Report
             parts.Add("Minimum delay " + model.Options.MinimumDelayMinutes.ToString(CultureInfo.InvariantCulture) +
                       " min (" + (model.Options.ThresholdBasis == DelayThresholdBasis.ActualDelay
                           ? "actual" : "included codes") + ")");
+            string mx = ReportSummary.MxFilterText(model.Options);
+            if (mx.Length > 0) parts.Add(mx);
             return string.Join("   ·   ", parts);
         }
 
