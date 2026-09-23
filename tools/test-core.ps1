@@ -256,10 +256,27 @@ try {
     # ---- the workbook ------------------------------------------------------
     Write-Output ''
     Write-Output '== the workbook =='
+    AssertEqual 'Grouped' $model.Options.Layout.ToString() 'the grouped layout is the default'
     $spec = [DelayReporter.Core.Report.ReportWriter]::BuildSheet($model)
     AssertEqual 14 $spec.Columns.Count 'fourteen columns'
     Assert ($spec.HeaderRow -gt 1) "the table header sits below the summary (row $($spec.HeaderRow))"
     AssertEqual ($model.ReportedFlights + $spec.HeaderRow) $spec.LastRow 'one row per flight'
+    $firstFlight = $spec.HeaderRow + 1
+    Assert ($spec.RowHeights[$firstFlight] -ge 36) 'grouped rows are tall enough to write on'
+    AssertEqual 1 $spec.ConditionalRules.Count 'a single rule groups the flights'
+    AssertEqual "MOD(SUBTOTAL(103,`$B`$$($firstFlight):`$B$($firstFlight)),5)=0" $spec.ConditionalRules[0].Formula `
+        'every fifth visible flight closes a group'
+    AssertEqual "A$($firstFlight):N$($spec.LastRow)" $spec.ConditionalRules[0].Range 'over the flights only'
+
+    $classicOptions = $options.Clone()
+    $classicOptions.Layout = [DelayReporter.Core.Report.ReportLayout]::Classic
+    $classic = [DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $classicOptions)
+    $classicSpec = [DelayReporter.Core.Report.ReportWriter]::BuildSheet($classic)
+    AssertEqual 14 $classicSpec.Columns.Count 'the classic layout keeps its fourteen columns'
+    AssertEqual ($classic.ReportedFlights + $classicSpec.HeaderRow) $classicSpec.LastRow 'and one row per flight'
+    AssertEqual 0 $classicSpec.ConditionalRules.Count 'and no group rules'
+    AssertEqual 'DEPARTURE DELAY REPORT' $classicSpec.Rows[1][0].Text 'and its own title'
+    AssertEqual 'Header' $classicSpec.Rows[$classicSpec.HeaderRow][0].Style.ToString() 'and its banded header'
 
     $outputPath = Join-Path $temp 'report.xlsx'
     [DelayReporter.Core.Report.ReportWriter]::Write($outputPath, $model)
@@ -279,6 +296,27 @@ try {
         $xml = [xml]$reader.ReadToEnd()
         $reader.Dispose()
         Assert ($null -ne $xml.worksheet.autoFilter) 'the sheet carries an autofilter'
+        Assert ($null -ne $xml.worksheet.conditionalFormatting) 'and its group rule'
+
+        # Schema order: mergeCells, then conditionalFormatting, then printOptions.
+        $order = @($xml.worksheet.ChildNodes | ForEach-Object { $_.LocalName })
+        Assert ($order.IndexOf('mergeCells') -lt $order.IndexOf('conditionalFormatting') -and
+                $order.IndexOf('conditionalFormatting') -lt $order.IndexOf('printOptions')) `
+            'conditional formatting sits between the merges and the print setup'
+
+        # CellStyle and DifferentialStyle index the style table; a count out of step with
+        # either enum means the report is silently restyled.
+        $styleEntry = $zip.GetEntry('xl/styles.xml')
+        $styleReader = New-Object IO.StreamReader($styleEntry.Open())
+        $styles = [xml]$styleReader.ReadToEnd()
+        $styleReader.Dispose()
+        $cellStyles = [Enum]::GetValues([DelayReporter.Core.Spreadsheet.CellStyle]).Count
+        AssertEqual $cellStyles $styles.styleSheet.cellXfs.xf.Count 'one cellXfs entry per CellStyle'
+        AssertEqual ([string]$cellStyles) $styles.styleSheet.cellXfs.count 'and the declared count agrees'
+        $dxfStyles = [Enum]::GetValues([DelayReporter.Core.Spreadsheet.DifferentialStyle]).Count
+        AssertEqual $dxfStyles @($styles.styleSheet.dxfs.dxf).Count 'one dxf per DifferentialStyle'
+        AssertEqual ([string]$styles.styleSheet.fonts.font.Count) $styles.styleSheet.fonts.count 'the font count agrees'
+        AssertEqual ([string]$styles.styleSheet.borders.border.Count) $styles.styleSheet.borders.count 'the border count agrees'
         Assert ($null -ne $xml.worksheet.pageSetup) 'and a page setup'
         AssertEqual 'landscape' $xml.worksheet.pageSetup.orientation 'printed landscape'
         AssertEqual '1' $xml.worksheet.pageSetup.fitToWidth 'fitted to one page wide'

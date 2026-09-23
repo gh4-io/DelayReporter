@@ -178,6 +178,7 @@ down the left, on-and-off choices as sliding switches. Nothing applies until **S
 
 | Page | Setting | Effect |
 |---|---|---|
+| Report | **Workbook layout** | **Grouped**, the default: black on white, tall rows centred vertically, flights in groups of five under a thin rule, and a wide Notes column to write in. **Classic**: the boxed, blue-banded layout used up to 0.3.1, kept unchanged for comparison. Both write the same flights, columns and summary. See [report layout](docs/report-layout.md). |
 | Report | **Show the carrier name in the OPR column** | On by default. Applies to the preview, the workbook and the email. |
 | Report | **Date format** | As in the file, or one of five patterns. Applies to the preview, the workbook and the email; also on the Date heading's right-click menu. The date pickers follow it. |
 | Report | **Aircraft** | **Min** (`767`), **Std** (`767-300`), or **Full**, the mapped label as written (`Boeing 767-300 Freighter`). Applies to the workbook's Aircraft column; an aircraft type missing from `aircraft-types.csv` always shows its raw `EQP` code regardless. |

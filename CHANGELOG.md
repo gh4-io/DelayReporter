@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- The workbook has a new default layout, modelled on printed movement delay reports: black on
+  white with no boxes or bands, a centred title and period, tall rows with every cell centred
+  vertically, flights in groups of five with a thin rule under each group, and a wider Notes column
+  to write in. The rule is conditional formatting, so it stays in fives when the sheet is sorted
+  or filtered in Excel. A mismatched delay shows both figures, `0:32 ≠ 0:25`, so it still reads on
+  a black and white printout.
+
 - The window is redesigned to match ICS Scrubber and OFT Scrubber, and now uses their shared
   `Fluent.xaml` and `Shell.xaml` theme unchanged: a File menu, Home, Presets, View and Help ribbon
   tabs, a collapsible options pane, and a status bar. Dragging a movement sheet over the window
@@ -30,6 +37,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Settings > Report > **Workbook layout** switches between the new **Grouped** layout and the
+  **Classic** one used up to 0.3.1, which is kept unchanged for comparison and rollback. The git tag
+  `report-layout-classic` marks the last commit with only the classic layout.
 - Clickable column headings sort the list, with an arrow on the sorted column. The workbook and
   email follow the same order.
 - Filter tags on the column headings show which filters are narrowing the list; hovering shows the

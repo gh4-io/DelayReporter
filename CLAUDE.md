@@ -70,7 +70,12 @@ will be written, so the preview and the saved workbook cannot disagree.
   and `printOptions`, `pageMargins`, `pageSetup`, `headerFooter` come last in that order. Excel
   rejects the file outright when this is wrong, usually with no useful message.
 - **`CellStyle` and `<cellXfs>` are one list in two places.** The enum's numeric values index the
-  style table in `XlsxStyles`. Change them together or the report silently restyles.
+  style table in `XlsxStyles`, as `DifferentialStyle` indexes `<dxfs>`. Change them together or the
+  report silently restyles; `test-core.ps1` checks the counts. Entries 1 to 12 are the classic
+  layout's; append, never insert.
+- **There are two workbook layouts.** `GroupedReportWriter` is the default; `ClassicReportWriter`
+  is the pre-redesign layout kept for rollback and should not be changed. A change to what the
+  report says (columns, summary, stacking) belongs in both, or in neither.
 - **Cell text is wrapped by us, not by Excel.** The Code, Reason and Duration columns must stay
   aligned line for line, so a wrapped reason gets matching blank lines in the other two. Row height
   is then computed from the line count. Letting Excel wrap breaks the alignment.

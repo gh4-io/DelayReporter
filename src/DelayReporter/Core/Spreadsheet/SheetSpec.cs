@@ -11,6 +11,8 @@ namespace DelayReporter.Core.Spreadsheet
     public enum CellStyle
     {
         Default = 0,
+
+        // The classic layout.
         Title = 1,
         Subtitle = 2,
         Band = 3,
@@ -23,6 +25,53 @@ namespace DelayReporter.Core.Spreadsheet
         BodyWrap = 10,
         Notes = 11,
         BodyFlag = 12,
+
+        // The grouped layout: black on white, no borders except the rules, and every cell
+        // centred vertically so a flight's single values sit level with the middle of its
+        // stacked codes.
+        GroupedTitle = 13,
+        GroupedPeriod = 14,
+        GroupedNote = 15,
+        GroupedSection = 16,
+        GroupedLabel = 17,
+        GroupedFigure = 18,
+        GroupedText = 19,
+        GroupedHeading = 20,
+        GroupedHeadingCenter = 21,
+        GroupedHeadingRight = 22,
+        GroupedCell = 23,
+        GroupedCellCenter = 24,
+        GroupedCellWrap = 25,
+        GroupedCellStack = 26,
+        GroupedCellStackRight = 27,
+        GroupedNotes = 28,
+        GroupedFlag = 29,
+    }
+
+    /// <summary>
+    /// Differential styles for conditional formatting. The order is the order of &lt;dxfs&gt;
+    /// in <see cref="XlsxStyles"/>.
+    /// </summary>
+    public enum DifferentialStyle
+    {
+        /// <summary>A thin grey rule under the cell, closing a group of flights.</summary>
+        GroupRule = 0,
+    }
+
+    /// <summary>A formula rule applied over a range, styled when the formula is true.</summary>
+    public sealed class ConditionalRule
+    {
+        public ConditionalRule(string range, string formula, DifferentialStyle style)
+        {
+            Range = range;
+            Formula = formula;
+            Style = style;
+        }
+
+        /// <summary>An A1 range such as "A18:N60"; relative references in the formula are relative to its top-left cell.</summary>
+        public string Range { get; }
+        public string Formula { get; }
+        public DifferentialStyle Style { get; }
     }
 
     public readonly struct Cell
@@ -66,6 +115,8 @@ namespace DelayReporter.Core.Spreadsheet
         public Dictionary<int, double> RowHeights { get; } = new Dictionary<int, double>();
 
         public List<string> Merges { get; } = new List<string>();
+
+        public List<ConditionalRule> ConditionalRules { get; } = new List<ConditionalRule>();
 
         /// <summary>1-based row carrying the table header; also the last repeated print row.</summary>
         public int HeaderRow { get; set; }

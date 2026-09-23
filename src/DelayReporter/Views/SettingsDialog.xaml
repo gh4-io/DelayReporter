@@ -94,6 +94,18 @@
                                    Text="These change how the preview, the workbook and the email all read." />
 
                         <Border Style="{StaticResource SettingCard}">
+                            <StackPanel>
+                                <TextBlock Text="Workbook layout" Style="{StaticResource SettingTitle}" />
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,8"
+                                           Text="How the saved workbook looks. Both print the same flights, columns and summary." />
+                                <RadioButton x:Name="LayoutGroupedRadio" GroupName="Layout"
+                                             Content="Grouped: tall rows in fives, room to write, no boxes" />
+                                <RadioButton x:Name="LayoutClassicRadio" GroupName="Layout"
+                                             Content="Classic: the boxed layout used up to 0.3.1" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingCard}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />

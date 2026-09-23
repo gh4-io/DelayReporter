@@ -63,6 +63,16 @@ namespace DelayReporter.Views
             }
         }
 
+        public ReportLayout Layout
+        {
+            get => LayoutClassicRadio.IsChecked == true ? ReportLayout.Classic : ReportLayout.Grouped;
+            set
+            {
+                LayoutGroupedRadio.IsChecked = value == ReportLayout.Grouped;
+                LayoutClassicRadio.IsChecked = value == ReportLayout.Classic;
+            }
+        }
+
         public bool ShowDebugSummary
         {
             get => DebugSummaryCheck.IsChecked == true;

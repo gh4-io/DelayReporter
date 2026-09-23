@@ -28,6 +28,22 @@ namespace DelayReporter.Core.Report
         Full = 2,
     }
 
+    /// <summary>
+    /// How the workbook is laid out. Both layouts print the same flights, columns and summary,
+    /// so switching never changes which flights are reported or how they are counted.
+    /// </summary>
+    public enum ReportLayout
+    {
+        /// <summary>
+        /// Monochrome and borderless, modelled on the printed movement reports: tall rows,
+        /// every cell centred vertically, and a rule after every fifth flight.
+        /// </summary>
+        Grouped = 0,
+
+        /// <summary>The boxed, blue-banded layout used up to 0.3.1, kept for comparison and rollback.</summary>
+        Classic = 1,
+    }
+
     /// <summary>Which flights the MX classification lets through.</summary>
     public enum MxFilter
     {
@@ -149,6 +165,8 @@ namespace DelayReporter.Core.Report
 
         public AircraftLabelFormat AircraftFormat { get; set; } = AircraftLabelFormat.Full;
 
+        public ReportLayout Layout { get; set; } = ReportLayout.Grouped;
+
         /// <summary>
         /// Appends a line to the summary carrying every count the default summary leaves out,
         /// so a thin report can still be explained in full.
@@ -192,6 +210,7 @@ namespace DelayReporter.Core.Report
                 ThresholdBasis = ThresholdBasis,
                 UseOperatorLabels = UseOperatorLabels,
                 AircraftFormat = AircraftFormat,
+                Layout = Layout,
                 ShowDebugSummary = ShowDebugSummary,
                 SearchText = SearchText,
                 MxFilter = MxFilter,

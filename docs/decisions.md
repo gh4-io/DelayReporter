@@ -254,3 +254,25 @@ nothing. Dates are never part of a preset: they belong to the file.
 Neither sibling has CI, the build is Windows-only, and a workflow that cannot build a WPF
 application or open the resulting workbook would add ceremony without value. Verification is
 `tools/test-core.ps1`, `tools/check-repo.ps1`, and looking at the report.
+
+## A grouped layout, with the classic one kept beside it
+
+The first layout was a boxed grid with blue bands, dense enough to fit a summary and fourteen
+columns on a landscape page. Stations already file printed movement delay reports that read more
+easily: black on white, no boxes, flights in groups of five, each flight's details level with the
+middle of its delay lines, and room to write. The grouped layout follows them and became the
+default.
+
+The classic layout was kept, unchanged, behind a setting rather than only in history. A redesign
+of something people print and sign is judged on paper, over a few days, and may be reversed; a
+setting lets the two be compared on the same file and rolled back without a rebuild. It costs one
+file, `ClassicReportWriter.cs`, and twelve style entries, and both go once the grouped layout has
+settled. The git tag `report-layout-classic` marks the last commit with only the old layout.
+
+The rule under every fifth flight is conditional formatting counting visible flight numbers with
+`SUBTOTAL(103, …)`, not a border written into the cells. The workbook still sorts and filters in
+Excel, and a written border would travel with its row and leave the rules scattered.
+
+On a mismatch, the grouped layout's Delay cell shows both figures, as the preview and the email
+already did, rather than the clock figure in red alone. A report printed in black and white would
+otherwise lose the flag entirely.

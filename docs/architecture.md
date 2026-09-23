@@ -35,7 +35,7 @@ rule ICS Scrubber applies to its scrub pass.
 | `Core/Spreadsheet` | `CellGrid` (text cells, header located by column name); `XlsxReader` (first worksheet, shared *and* inline strings, via System.IO.Packaging); `CsvReader` (RFC 4180, delimiter sniffing); `SheetSpec` (a sheet described in full before writing); `XlsxStyles` (the fixed style table); `XlsxWriter` (the package, written as a plain zip). |
 | `Core/Movement` | `MovementReader` (title rows, header discovery, footer recognition, station detection); `MovementSheet`/`MovementRow`; `ClockTime` (times with a status letter, midnight-safe delay arithmetic); `DelayCodeParser` (the packed delay cell). |
 | `Core/Mapping` | `MappingTable` (code to entry, with zero-padding normalisation); `MappingStore` (seed-on-first-run, never overwrite). |
-| `Core/Report` | `ReportOptions` (the filters); `ReportBuilder` (narrowing and resolving); `ReportModel` (the finished report); `TextWrap`; `ReportWriter` (the workbook layout). |
+| `Core/Report` | `ReportOptions` (the filters); `ReportBuilder` (narrowing and resolving); `ReportModel` (the finished report); `TextWrap`; `ReportWriter` (picks the workbook layout), `GroupedReportWriter` (the default layout) and `ClassicReportWriter` (the layout used up to 0.3.1, kept for comparison and rollback). |
 | `Core/Email` | `DelayEmail` (the compact email, from the same `ReportModel`); `EmailDraft`; `EmlDraftWriter` (MIME draft marked unsent, ported from OFT Scrubber). |
 | `Core` | `SettingsStore` (plain key=value preferences); `Presets` (built-in presets and the user's saved ones). |
 | `MainWindow`, `Views`, `Controls` | Code-behind UI: ribbon, options pane, flight grid; Settings, About and preset dialogs; the filter dropdown, column header model and Codes cell converter. |
@@ -71,13 +71,14 @@ search, hidden rows and a "report selected" restriction — recording a count at
 flights are then sorted by the chosen column, so the preview, workbook and email share one order. Those counts reach the summary, so a report that came out thin can be explained
 rather than guessed at.
 
-**Writing.** `ReportWriter` builds a `SheetSpec`; `XlsxWriter` turns it into a package. The package
+**Writing.** `ReportWriter` hands the model to the layout its options name, which builds a
+`SheetSpec`; `XlsxWriter` turns it into a package. The package
 is a plain zip with its content types and relationships written out explicitly, rather than
 System.IO.Packaging, so the bytes are exactly those intended and can be compared against a
 reference file. Element order inside `<worksheet>` is fixed by the schema and is the single easiest
 thing to get wrong; the constraints are recorded in the writer's own comments.
 
-**Wrapping.** Excel is not allowed to wrap the delay columns. `ReportWriter` wraps the reason text
+**Wrapping.** Excel is not allowed to wrap the delay columns. Each layout wraps the reason text
 itself and pads the Code and Duration cells with matching blank lines, so every code stays beside
 its own reason and duration however long the text runs. Row height follows from the resulting line
 count.

@@ -15,11 +15,12 @@ namespace DelayReporter.Core.Spreadsheet
     /// Hand written over ZipArchive and XmlWriter, both supplied by Windows, so the
     /// application stays a single executable with no runtime dependency. The scope is
     /// deliberately just what this one report needs: text cells, a fixed style table,
-    /// column widths, row heights, merges, a freeze pane, an autofilter and print setup.
+    /// column widths, row heights, merges, a freeze pane, an autofilter, formula-based
+    /// conditional formatting and print setup.
     ///
     /// Element order inside &lt;worksheet&gt; is fixed by the OOXML schema. In particular
-    /// autoFilter must precede mergeCells, and printOptions, pageMargins, pageSetup and
-    /// headerFooter come last, in that order. Excel and other readers reject the file
+    /// autoFilter must precede mergeCells, conditionalFormatting follows mergeCells, and
+    /// printOptions, pageMargins, pageSetup and headerFooter come last, in that order. Excel and other readers reject the file
     /// outright when this is wrong.
     /// </summary>
     public static class XlsxWriter
@@ -185,6 +186,9 @@ namespace DelayReporter.Core.Spreadsheet
                 w.WriteEndElement();
 
                 WriteMerges(w, sheet);
+
+                // conditionalFormatting follows mergeCells and precedes printOptions.
+                WriteConditionalRules(w, sheet);
                 WritePrintSetup(w, sheet);
 
                 w.WriteEndElement();    // worksheet
@@ -301,6 +305,23 @@ namespace DelayReporter.Core.Spreadsheet
                 w.WriteEndElement();
             }
             w.WriteEndElement();
+        }
+
+        private static void WriteConditionalRules(XmlWriter w, SheetSpec sheet)
+        {
+            int priority = 1;
+            foreach (ConditionalRule rule in sheet.ConditionalRules)
+            {
+                w.WriteStartElement("conditionalFormatting", Ns);
+                w.WriteAttributeString("sqref", rule.Range);
+                w.WriteStartElement("cfRule", Ns);
+                w.WriteAttributeString("type", "expression");
+                w.WriteAttributeString("dxfId", ((int)rule.Style).ToString(CultureInfo.InvariantCulture));
+                w.WriteAttributeString("priority", (priority++).ToString(CultureInfo.InvariantCulture));
+                w.WriteElementString("formula", Ns, rule.Formula);
+                w.WriteEndElement();
+                w.WriteEndElement();
+            }
         }
 
         private static void WritePrintSetup(XmlWriter w, SheetSpec sheet)

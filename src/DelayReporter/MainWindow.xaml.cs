@@ -31,6 +31,7 @@ namespace DelayReporter
         private const string KeyUnselectedCodes = "unselectedCodes";
         private const string KeyOperatorLabels = "operatorLabels";
         private const string KeyAircraftFormat = "aircraftFormat";
+        private const string KeyLayout = "reportLayout";
         private const string KeyDebugSummary = "debugSummary";
         private const string KeyEmailTo = "emailTo";
         private const string KeyEmailCc = "emailCc";
@@ -96,6 +97,7 @@ namespace DelayReporter
 
         private bool _useOperatorLabels = true;
         private AircraftLabelFormat _aircraftFormat = AircraftLabelFormat.Full;
+        private ReportLayout _layout = ReportLayout.Grouped;
         private bool _showDebugSummary;
         private string _emailTo = string.Empty;
         private string _emailCc = string.Empty;
@@ -197,6 +199,7 @@ namespace DelayReporter
             UnselectedCodes = ParseEnum(_settings.Get(KeyUnselectedCodes, string.Empty), UnselectedCodeDisplay.Visible);
             _useOperatorLabels = _settings.Get(KeyOperatorLabels, true);
             _aircraftFormat = ParseEnum(_settings.Get(KeyAircraftFormat, string.Empty), AircraftLabelFormat.Full);
+            _layout = ParseEnum(_settings.Get(KeyLayout, string.Empty), ReportLayout.Grouped);
             _showDebugSummary = _settings.Get(KeyDebugSummary, false);
             _emailTo = _settings.Get(KeyEmailTo, string.Empty);
             _emailCc = _settings.Get(KeyEmailCc, string.Empty);
@@ -532,6 +535,7 @@ namespace DelayReporter
                     : DelayThresholdBasis.IncludedCodes,
                 UseOperatorLabels = _useOperatorLabels,
                 AircraftFormat = _aircraftFormat,
+                Layout = _layout,
                 ShowDebugSummary = _showDebugSummary,
                 SearchText = SearchBox.Text.Trim(),
                 SortColumn = _sortColumn,
@@ -1530,6 +1534,7 @@ namespace DelayReporter
                 UnselectedCodes = UnselectedCodes,
                 UseOperatorLabels = _useOperatorLabels,
                 AircraftFormat = _aircraftFormat,
+                Layout = _layout,
                 ShowDebugSummary = _showDebugSummary,
                 EmailTo = _emailTo,
                 EmailCc = _emailCc,
@@ -1551,6 +1556,7 @@ namespace DelayReporter
                 SizeOperatorColumn();
             }
             _aircraftFormat = dialog.AircraftFormat;
+            _layout = dialog.Layout;
             _showDebugSummary = dialog.ShowDebugSummary;
             _emailTo = dialog.EmailTo;
             _emailCc = dialog.EmailCc;
@@ -1571,6 +1577,7 @@ namespace DelayReporter
             _settings.Set(KeyUnselectedCodes, UnselectedCodes.ToString());
             _settings.Set(KeyOperatorLabels, _useOperatorLabels);
             _settings.Set(KeyAircraftFormat, _aircraftFormat.ToString());
+            _settings.Set(KeyLayout, _layout.ToString());
             _settings.Set(KeyDebugSummary, _showDebugSummary);
             _settings.Set(KeyEmailTo, _emailTo);
             _settings.Set(KeyEmailCc, _emailCc);
