@@ -7,6 +7,10 @@
         Background="{StaticResource WindowBrush}"
         AllowDrop="True" Drop="OnDrop" DragOver="OnDragOver">
 
+    <Window.Resources>
+        <controls:CodePartsConverter x:Key="CodeParts"/>
+    </Window.Resources>
+
     <DockPanel>
 
         <!-- Commands -->
@@ -19,6 +23,7 @@
                             ToolTip="Open the report in Excel as a temporary copy, without saving it"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                    <Button Content="_Settings" Click="OnSettings" ToolTip="Choose how the preview and the report read"/>
                     <Button Content="_Mappings" Click="OnOpenMappings" ToolTip="Open the folder holding the editable mapping CSVs"/>
                     <Button Content="_About" Click="OnAbout" Margin="0"/>
                 </StackPanel>
@@ -122,8 +127,71 @@
                                 <GridViewColumn Header="STD" Width="52" DisplayMemberBinding="{Binding ScheduledText}"/>
                                 <GridViewColumn Header="Delay" Width="52" DisplayMemberBinding="{Binding ActualDelayText}"/>
                                 <GridViewColumn Header="Coded" Width="52" DisplayMemberBinding="{Binding CodedDelayText}"/>
-                                <GridViewColumn Header="OPR" Width="46" DisplayMemberBinding="{Binding Operator}"/>
-                                <GridViewColumn Header="Codes" Width="300" DisplayMemberBinding="{Binding CodeSummary}"/>
+
+                                <!-- Three states: indeterminate leaves the flight to its codes, ticked
+                                     forces MX, empty excludes it. "MX" beside the box shows the result,
+                                     muted while it is automatic. The click is handled in code so the
+                                     cycle runs automatic, force, exclude, whatever WPF's own order. -->
+                                <GridViewColumn Header="MX" Width="58">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Background="Transparent"
+                                                        ToolTip="{Binding MxDescription}">
+                                                <CheckBox IsThreeState="True" Margin="0" VerticalAlignment="Center"
+                                                          IsChecked="{Binding MxOverride, Mode=OneWay}"
+                                                          Click="OnMxClick"/>
+                                                <TextBlock x:Name="MxText" Text="MX" Margin="4,0,0,0"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsMxDelay}" Value="False">
+                                                    <Setter TargetName="MxText" Property="Visibility" Value="Hidden"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding MxOverride}" Value="{x:Null}">
+                                                    <Setter TargetName="MxText" Property="Foreground"
+                                                            Value="{StaticResource MutedTextBrush}"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+
+                                <GridViewColumn x:Name="OperatorColumn" Header="OPR" Width="120"
+                                                DisplayMemberBinding="{Binding OperatorDisplay}"/>
+
+                                <!-- One run per code, so codes the Delay codes filter did not choose can
+                                     be dimmed or hidden without touching the others. -->
+                                <GridViewColumn Header="Codes" Width="300">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ItemsControl Focusable="False">
+                                                <ItemsControl.ItemsSource>
+                                                    <MultiBinding Converter="{StaticResource CodeParts}">
+                                                        <Binding/>
+                                                        <Binding Path="UnselectedCodes"
+                                                                 RelativeSource="{RelativeSource AncestorType=Window}"/>
+                                                    </MultiBinding>
+                                                </ItemsControl.ItemsSource>
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal"/>
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock x:Name="Part" Text="{Binding Text}"/>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding IsDimmed}" Value="True">
+                                                                <Setter TargetName="Part" Property="Foreground"
+                                                                        Value="{StaticResource MutedTextBrush}"/>
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                             </GridView>
                         </ListView.View>
                     </ListView>

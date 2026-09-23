@@ -4,7 +4,7 @@ A Windows tool that reads a movement sheet, pulls the coded departure delays out
 every code against an editable list, and writes a professional, printable Excel workbook with room
 for the station's own notes.
 
-**Version 0.2.0.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
+**Version 0.3.0.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
 or build it from source. Copy the executable anywhere and run it: there is no installer, no runtime
 to install, no companion DLL, and it never needs administrator rights. Build output and release
 binaries are not stored in Git.
@@ -71,10 +71,11 @@ Help > **Mappings** opens the folder.
 `delay-codes.csv` — seeded with all 173 codes from *Global Network Delay Codes v8.1*:
 
 ```csv
-code,label,exclude,si_required,si_remark
-93A,Aircraft rotation,,Yes,record delayed inbound movement
-2,Non standard load,,Yes,record ULD ID
-81,Atfm due to atc en route demand / capacity,Y,No,
+code,label,exclude,si_required,si_remark,category
+93A,Aircraft rotation,,Yes,record delayed inbound movement,
+2,Non standard load,,Yes,record ULD ID,
+81,Atfm due to atc en route demand / capacity,Y,No,,
+41,Aircraft / truck defects,,No,,MX
 ```
 
 | Column | Meaning |
@@ -83,6 +84,7 @@ code,label,exclude,si_required,si_remark
 | `label` | What the report prints. |
 | `exclude` | `Y` drops that code's events from the report. The flight keeps its other codes; a flight whose codes are *all* excluded leaves the report. Excluded events are counted on the summary, so the number stays auditable. |
 | `si_required`, `si_remark` | 66 codes oblige the station to record supplementary information. When one applies, the flight's Notes cell is pre-filled with what is required — `record ULD ID`, `record causing movement(s)` — turning the report into a checklist of what is still owed. |
+| `category` | A cause grouping, kept apart from the label. Seeded with `MX` for every code in the 40s (maintenance); free text otherwise, and uncategorised is never an error. Drives the summary's "with MX coded delay" figure. Each flight also carries its own tick in the preview to force or exclude the MX classification for that run — Automatic, Force, Exclude, cycling back to Automatic — which is never saved and resets when you open another file. |
 
 `aircraft-types.csv` maps the `EQP` column (`77X`, `76Y`, …) to readable names, with the same
 `exclude` column.
@@ -96,8 +98,18 @@ marked `(unmapped)`, and is listed on the summary so you know to add it.
 
 ## Settings
 
-`%APPDATA%\Delay Reporter\settings.txt` holds the station, the minimum delay and its basis.
-It is plain text; deleting it restores the defaults.
+The **Settings** button changes how the preview and the report read, without changing what they
+contain:
+
+| Setting | Effect |
+|---|---|
+| **Delay codes not chosen in the filter** | Visible, Dimmed or Hidden. Applies to the preview's Codes column while the Delay codes filter is narrowed. The workbook always lists every code regardless, so its coded total keeps reconciling with the clock delay. |
+| **Show the carrier name in the OPR column** | On by default. Applies to both the preview and the workbook. |
+| **Aircraft** | Family (`767`), family and variant (`767-300`), or the full mapped label (`Boeing 767-300 Freighter`). Applies to the workbook's Aircraft column; an aircraft type missing from `aircraft-types.csv` always shows its raw `EQP` code regardless. |
+| **Show additional debug data** | Off by default. Adds one line to the summary, on screen and in the workbook, carrying every count the default summary leaves out — rows read, every exclusion reason, mapper exclusions, reconciliation mismatches, MX overrides, and every unmapped code, aircraft and operator by name. Nothing that leaves the report is ever uncounted; this is just where the detail goes when the default summary does not need it. |
+
+`%APPDATA%\Delay Reporter\settings.txt` holds the station, the minimum delay and its basis, and
+these four preferences. It is plain text; deleting it restores the defaults.
 
 The executable is unsigned, so Windows may show a security prompt for a downloaded copy.
 

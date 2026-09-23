@@ -1,174 +1,174 @@
-code,label,exclude,si_required,si_remark
-0,Sort equipment failure,,No,
-1,Authorised reschedule of movement,,Yes,record root cause
-2,Non standard load,,Yes,record ULD ID
-3,Police / Customs En-route,,No,
-4,Load sequence failure,,Yes,record causing movement(s)
-5,Traffic jam en-route,,No,
-6,No stand available,,No,
-6A,No stand available,,No,
-6B,No stand available,,No,
-7,Ferry / Tunnel / Shuttle / Border / Bridge,,No,
-8,Loading/Unloading Docks Occupied,,No,
-9,Ground time less than declared minimum,,Yes,record root cause
-10,Security Material / ADR Compliance,,Yes,record root cause
-21,Documentation,,No,
-21A,Documentation,,No,
-21B,Documentation,,No,
-21C,Documentation,,No,
-22,Late arrival of freight at aircraft/truck for loading,,No,
-22A,Late arrival of freight at aircraft/truck for loading,,No,
-22B,Late arrival of freight at,,No,
-23,Late acceptance of freight,,No,
-23A,Late acceptance of freight,,No,
-23B,Late acceptance of freight,,No,
-25,Overload,,No,
-25A,Overload,,No,
-25B,Overload,,No,
-25C,Overload,,No,
-26,Freight preparation,,No,
-28,Incorrect build up of ULD's,,No,
-28A,Incorrect build up of ULD's,,No,
-28B,Incorrect build up of ULD's,,No,
-28C,Incorrect build up of ULD's,,No,
-28D,Incorrect build up of ULD's,,No,
-31,Aircraft / Truck Loadsheet,,No,
-31A,Aircraft loadsheet,,No,
-31B,Aircraft loadsheet,,No,
-31C,Aircraft loadsheet,,Yes,record error(s)
-31D,Aircraft loadsheet,,No,
-31E,Aircraft loadsheet,,No,
-32,Loading/Unloading,,No,
-32A,Loading/Unloading,,No,
-32B,Loading/Unloading,,Yes,record loading error(s)
-32C,Loading/Unloading,,No,
-33,Ground Service Equipment,,No,
-33A,Ground service equipment,,Yes,record failed GSE
-33B,Ground service equipment,,Yes,record late GSE
-33C,Ground service equipment,,Yes,record GSE
-33D,Ground service equipment,,Yes,record failed GSE
-33E,Ground service equipment,,Yes,record late GSE
-33F,Ground service equipment,,Yes,record GSE
-35,Aircraft cleaning,,No,
-35A,Aircraft cleaning,,Yes,specify cleaning
-35B,Aircraft cleaning,,Yes,specify shipment
-35C,Aircraft cleaning,,Yes,specify shipment
-36,Fuelling/defuelling,,No,
-36A,Fuelling/defuelling,,No,
-36B,Fuelling/defuelling,,Yes,record root cause
-36C,Fuelling/defuelling,,No,
-37,Catering,,Yes,record root cause
-38,ULD,,No,
-38A,ULD,,Yes,record ULD + specific damage
-38B,ULD,,No,
-39,Pushback,,No,
-39A,Pushback,,Yes,record root cause
-39B,Pushback,,Yes,record root cause
-39C,Pushback,,Yes,record root cause
-39D,Pushback,,Yes,record root cause
-39E,Pushback,,Yes,record root cause
-39F,Pushback,,Yes,record root cause
-41,Aircraft / truck defects,,No,
-41A,Aircraft defects,,Yes,record technical problem
-41B,Aircraft defects,,Yes,record technical problem
-41C,Aircraft defects,,Yes,record technical problem
-41D,Aircraft defects,,Yes,Inoperative PDU/CLS to be mentioned
-42,Scheduled maintenance,,No,
-43,Non scheduled maintenance,,No,
-45,AOG Spares,,No,
-45A,AOG Spares,,No,
-45B,AOG Spares,,No,
-46,Aircraft / Truck change,,No,
-46A,Aircraft change,,Yes,
-46B,Aircraft change,,Yes,#: Initial aircraft registration & defect to be
-46C,Aircraft change,,Yes,mentioned
-46D,Aircraft change,,Yes,
-48,Configuration change,,No,
-48A,Cabin configuration change,,Yes,record specific lock
-48B,Cabin configuration change,,Yes,Record configuration change
-51,Damage during flight operations / Truck enroute,,Yes,record damage
-51A,Damage during flight operations,,Yes,record damage
-51E,Damage during flight operations,,Yes,record damage
-52,Damage during ground operations,,Yes,record damage
-52A,Damage during ground operations,,Yes,record damage
-52B,Damage during ground operations,,Yes,record damage
-52C,Damage during ground operations,,Yes,record damage
-52D,Damage during ground operations,,Yes,record damage
-58,System computer failure,,Yes,specify system
-58A,System computer failure,,Yes,specify system and helpdesk ticket
-58B,System computer failure,,Yes,specify system in SI field
-58C,System computer failure,,Yes,specify system and helpdesk ticket
-60,Late flight / truck positioning,,Yes,
-60A,Late flight positioning,,No,
-60B,Late flight positioning,,No,
-61,Flight plan,,No,
-61A,Flight plan,,Yes,Specify which document was the root cause of the delay
-61B,Flight plan,,No,
-62,Operational requirements,,No,
-62A,Operational requirements,,No,
-62B,Operational requirements,,No,
-62C,Operational requirements,,No,
-62D,Operational requirements,,No,
-62E,Operational requirements,,No,
-62F,Operational requirements,,No,
-62G,Operational requirements,,No,
-62H,Operational requirements,,Yes,"Specify operation requirement (e.g. Nav Database , manual eor charts not updated)"
-63,Late crew / driver boarding,,Yes,
-63A,Late crew boarding,,No,
-63B,Late crew boarding,,No,
-63C,Late crew boarding,,No,
-63D,Late crew boarding,,No,
-64,Crew shortage duty hours / Driver duty hours,,Yes,
-64A,Crew shortage duty hours,,No,
-64B,Crew shortage duty hours,,No,
-64C,Crew shortage duty hours,,No,
-65,Flight deck special request,,Yes,Record special request
-69,Security search,,No,
-71,Weather at departure Airport,,No,
-72,Weather at destination Airport,,No,
-73,Weather enroute,,No,
-75,Deicing and desnowing of aircraft,,No,
-75A,Deicing and desnowing of aircraft,,No,
-75B,Deicing and desnowing of aircraft,,No,
-76,"Airport closed for removal of snow, ice, water or sand",,No,
-76A,"Airport closed for removal of snow, ice, water or sand",,No,
-76B,"Airport closed for removal of snow, ice, water or sand",,No,
-76C,"Airport closed for removal of snow, ice, water or sand",,No,
-77,Ground handling impaired by adverse weather,,No,
-81,Atfm due to atc en route demand / capacity,,No,
-82,Atfm due to staff / equipment en route,,No,
-83,Atfm due to restrictions at destination airport,,No,
-84,Atfm due to weather at destination,,No,
-85,Mandatory security / Fire & Rescue,,No,
-85A,Mandatory security / Fire & Rescue,,No,
-85B,Mandatory security / Fire & Rescue,,No,Validation by INCC/Regional NCC is required.
-86,"Immigration, customs, health",,No,
-87,Airport facilities,,No,
-87A,Airport facilities,,No,
-87B,Airport facilities,,No,
-87C,Airport facilities,,No,
-87D,Airport facilities,,Yes,Record issue
-87E,Airport facilities,,Yes,Record issue
-88,Restrictions at destination airport,,No,
-89,Restrictions at airport of departure with or without aftm restrictions,,No,
-90,Driver change or additional rest as a result of a delayed departure.,,Yes,Mandatory record the root cause of the delayed departure
-91,Load connection,,No,
-91A,Load connection,,Yes,record delayed inbound movement
-91B,Load connection,,Yes,record delayed inbound movement
-93,Aircraft / Truck Rotation,,Yes,record delayed inbound movement
-93A,Aircraft rotation,,Yes,record delayed inbound movement
-93B,Aircraft rotation,,Yes,record delayed inbound movement
-95,Crew Rotation,,No,
-95A,Crew rotation,,No,
-95B,Crew rotation,,No,
-95C,Crew rotation,,No,
-95D,Crew Rotation,,No,
-96,Operations control,,Yes,record root cause event
-96A,Operations control,,Yes,
-96B,Operations control,,Yes,
-96C,Operations control,,Yes,root cause event to be mentioned
-96D,Operations control,,Yes,
-97,Industrial action,,No,
-97A,Industrial action within own organisation,,No,
-97B,Industrial action within own organisation,,No,
-98,Industrial action outside own organisation,,No,
+code,label,exclude,si_required,si_remark,category
+0,Sort equipment failure,,No,,
+1,Authorised reschedule of movement,,Yes,record root cause,
+2,Non standard load,,Yes,record ULD ID,
+3,Police / Customs En-route,,No,,
+4,Load sequence failure,,Yes,record causing movement(s),
+5,Traffic jam en-route,,No,,
+6,No stand available,,No,,
+6A,No stand available,,No,,
+6B,No stand available,,No,,
+7,Ferry / Tunnel / Shuttle / Border / Bridge,,No,,
+8,Loading/Unloading Docks Occupied,,No,,
+9,Ground time less than declared minimum,,Yes,record root cause,
+10,Security Material / ADR Compliance,,Yes,record root cause,
+21,Documentation,,No,,
+21A,Documentation,,No,,
+21B,Documentation,,No,,
+21C,Documentation,,No,,
+22,Late arrival of freight at aircraft/truck for loading,,No,,
+22A,Late arrival of freight at aircraft/truck for loading,,No,,
+22B,Late arrival of freight at,,No,,
+23,Late acceptance of freight,,No,,
+23A,Late acceptance of freight,,No,,
+23B,Late acceptance of freight,,No,,
+25,Overload,,No,,
+25A,Overload,,No,,
+25B,Overload,,No,,
+25C,Overload,,No,,
+26,Freight preparation,,No,,
+28,Incorrect build up of ULD's,,No,,
+28A,Incorrect build up of ULD's,,No,,
+28B,Incorrect build up of ULD's,,No,,
+28C,Incorrect build up of ULD's,,No,,
+28D,Incorrect build up of ULD's,,No,,
+31,Aircraft / Truck Loadsheet,,No,,
+31A,Aircraft loadsheet,,No,,
+31B,Aircraft loadsheet,,No,,
+31C,Aircraft loadsheet,,Yes,record error(s),
+31D,Aircraft loadsheet,,No,,
+31E,Aircraft loadsheet,,No,,
+32,Loading/Unloading,,No,,
+32A,Loading/Unloading,,No,,
+32B,Loading/Unloading,,Yes,record loading error(s),
+32C,Loading/Unloading,,No,,
+33,Ground Service Equipment,,No,,
+33A,Ground service equipment,,Yes,record failed GSE,
+33B,Ground service equipment,,Yes,record late GSE,
+33C,Ground service equipment,,Yes,record GSE,
+33D,Ground service equipment,,Yes,record failed GSE,
+33E,Ground service equipment,,Yes,record late GSE,
+33F,Ground service equipment,,Yes,record GSE,
+35,Aircraft cleaning,,No,,
+35A,Aircraft cleaning,,Yes,specify cleaning,
+35B,Aircraft cleaning,,Yes,specify shipment,
+35C,Aircraft cleaning,,Yes,specify shipment,
+36,Fuelling/defuelling,,No,,
+36A,Fuelling/defuelling,,No,,
+36B,Fuelling/defuelling,,Yes,record root cause,
+36C,Fuelling/defuelling,,No,,
+37,Catering,,Yes,record root cause,
+38,ULD,,No,,
+38A,ULD,,Yes,record ULD + specific damage,
+38B,ULD,,No,,
+39,Pushback,,No,,
+39A,Pushback,,Yes,record root cause,
+39B,Pushback,,Yes,record root cause,
+39C,Pushback,,Yes,record root cause,
+39D,Pushback,,Yes,record root cause,
+39E,Pushback,,Yes,record root cause,
+39F,Pushback,,Yes,record root cause,
+41,Aircraft / truck defects,,No,,MX
+41A,Aircraft defects,,Yes,record technical problem,MX
+41B,Aircraft defects,,Yes,record technical problem,MX
+41C,Aircraft defects,,Yes,record technical problem,MX
+41D,Aircraft defects,,Yes,Inoperative PDU/CLS to be mentioned,MX
+42,Scheduled maintenance,,No,,MX
+43,Non scheduled maintenance,,No,,MX
+45,AOG Spares,,No,,MX
+45A,AOG Spares,,No,,MX
+45B,AOG Spares,,No,,MX
+46,Aircraft / Truck change,,No,,MX
+46A,Aircraft change,,Yes,,MX
+46B,Aircraft change,,Yes,#: Initial aircraft registration & defect to be,MX
+46C,Aircraft change,,Yes,mentioned,MX
+46D,Aircraft change,,Yes,,MX
+48,Configuration change,,No,,MX
+48A,Cabin configuration change,,Yes,record specific lock,MX
+48B,Cabin configuration change,,Yes,Record configuration change,MX
+51,Damage during flight operations / Truck enroute,,Yes,record damage,
+51A,Damage during flight operations,,Yes,record damage,
+51E,Damage during flight operations,,Yes,record damage,
+52,Damage during ground operations,,Yes,record damage,
+52A,Damage during ground operations,,Yes,record damage,
+52B,Damage during ground operations,,Yes,record damage,
+52C,Damage during ground operations,,Yes,record damage,
+52D,Damage during ground operations,,Yes,record damage,
+58,System computer failure,,Yes,specify system,
+58A,System computer failure,,Yes,specify system and helpdesk ticket,
+58B,System computer failure,,Yes,specify system in SI field,
+58C,System computer failure,,Yes,specify system and helpdesk ticket,
+60,Late flight / truck positioning,,Yes,,
+60A,Late flight positioning,,No,,
+60B,Late flight positioning,,No,,
+61,Flight plan,,No,,
+61A,Flight plan,,Yes,Specify which document was the root cause of the delay,
+61B,Flight plan,,No,,
+62,Operational requirements,,No,,
+62A,Operational requirements,,No,,
+62B,Operational requirements,,No,,
+62C,Operational requirements,,No,,
+62D,Operational requirements,,No,,
+62E,Operational requirements,,No,,
+62F,Operational requirements,,No,,
+62G,Operational requirements,,No,,
+62H,Operational requirements,,Yes,"Specify operation requirement (e.g. Nav Database , manual eor charts not updated)",
+63,Late crew / driver boarding,,Yes,,
+63A,Late crew boarding,,No,,
+63B,Late crew boarding,,No,,
+63C,Late crew boarding,,No,,
+63D,Late crew boarding,,No,,
+64,Crew shortage duty hours / Driver duty hours,,Yes,,
+64A,Crew shortage duty hours,,No,,
+64B,Crew shortage duty hours,,No,,
+64C,Crew shortage duty hours,,No,,
+65,Flight deck special request,,Yes,Record special request,
+69,Security search,,No,,
+71,Weather at departure Airport,,No,,
+72,Weather at destination Airport,,No,,
+73,Weather enroute,,No,,
+75,Deicing and desnowing of aircraft,,No,,
+75A,Deicing and desnowing of aircraft,,No,,
+75B,Deicing and desnowing of aircraft,,No,,
+76,"Airport closed for removal of snow, ice, water or sand",,No,,
+76A,"Airport closed for removal of snow, ice, water or sand",,No,,
+76B,"Airport closed for removal of snow, ice, water or sand",,No,,
+76C,"Airport closed for removal of snow, ice, water or sand",,No,,
+77,Ground handling impaired by adverse weather,,No,,
+81,Atfm due to atc en route demand / capacity,,No,,
+82,Atfm due to staff / equipment en route,,No,,
+83,Atfm due to restrictions at destination airport,,No,,
+84,Atfm due to weather at destination,,No,,
+85,Mandatory security / Fire & Rescue,,No,,
+85A,Mandatory security / Fire & Rescue,,No,,
+85B,Mandatory security / Fire & Rescue,,No,Validation by INCC/Regional NCC is required.,
+86,"Immigration, customs, health",,No,,
+87,Airport facilities,,No,,
+87A,Airport facilities,,No,,
+87B,Airport facilities,,No,,
+87C,Airport facilities,,No,,
+87D,Airport facilities,,Yes,Record issue,
+87E,Airport facilities,,Yes,Record issue,
+88,Restrictions at destination airport,,No,,
+89,Restrictions at airport of departure with or without aftm restrictions,,No,,
+90,Driver change or additional rest as a result of a delayed departure.,,Yes,Mandatory record the root cause of the delayed departure,
+91,Load connection,,No,,
+91A,Load connection,,Yes,record delayed inbound movement,
+91B,Load connection,,Yes,record delayed inbound movement,
+93,Aircraft / Truck Rotation,,Yes,record delayed inbound movement,
+93A,Aircraft rotation,,Yes,record delayed inbound movement,
+93B,Aircraft rotation,,Yes,record delayed inbound movement,
+95,Crew Rotation,,No,,
+95A,Crew rotation,,No,,
+95B,Crew rotation,,No,,
+95C,Crew rotation,,No,,
+95D,Crew Rotation,,No,,
+96,Operations control,,Yes,record root cause event,
+96A,Operations control,,Yes,,
+96B,Operations control,,Yes,,
+96C,Operations control,,Yes,root cause event to be mentioned,
+96D,Operations control,,Yes,,
+97,Industrial action,,No,,
+97A,Industrial action within own organisation,,No,,
+97B,Industrial action within own organisation,,No,,
+98,Industrial action outside own organisation,,No,,

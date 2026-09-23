@@ -22,6 +22,16 @@ namespace DelayReporter.Core.Mapping
 
         /// <summary>What that information is, e.g. "record ULD ID".</summary>
         public string SupplementaryRemark { get; set; } = string.Empty;
+
+        /// <summary>
+        /// A cause grouping kept apart from the label, e.g. "MX" for maintenance. Empty means
+        /// uncategorised, which is never an error.
+        /// </summary>
+        public string Category { get; set; } = string.Empty;
+
+        /// <summary>The category matches, ignoring case, so a hand typed "mx" still counts.</summary>
+        public bool IsCategory(string category) =>
+            Category.Equals(category, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -117,6 +127,7 @@ namespace DelayReporter.Core.Mapping
                     Exclude = IsTrue(Cell(grid, r, map, "EXCLUDE")),
                     SupplementaryRequired = IsTrue(Cell(grid, r, map, "SI_REQUIRED")),
                     SupplementaryRemark = Cell(grid, r, map, "SI_REMARK"),
+                    Category = Cell(grid, r, map, "CATEGORY"),
                 });
             }
 

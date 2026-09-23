@@ -76,7 +76,7 @@ namespace DelayReporter.Core.Report
                 }
                 model.FlightsWithCodedDelay++;
 
-                ReportFlight flight = Resolve(row, mappings, model);
+                ReportFlight flight = Resolve(row, mappings, model, options);
 
                 if (flight.Events.Count == 0)
                 {
@@ -128,7 +128,8 @@ namespace DelayReporter.Core.Report
         private static bool MatchesSet(HashSet<string> allowed, string value) =>
             allowed.Count == 0 || allowed.Contains(value);
 
-        private static ReportFlight Resolve(MovementRow row, MappingStore mappings, ReportModel model)
+        private static ReportFlight Resolve(MovementRow row, MappingStore mappings, ReportModel model,
+                                            ReportOptions options)
         {
             var flight = new ReportFlight
             {
@@ -150,8 +151,9 @@ namespace DelayReporter.Core.Report
 
             MappingEntry? aircraft = mappings.AircraftTypes.Find(row.EquipmentCode);
             flight.AircraftUnmapped = aircraft == null;
+            // Only a mapped label is shortened; a raw EQP code is not a label to parse.
             flight.AircraftLabel = aircraft != null && aircraft.Label.Length > 0
-                ? aircraft.Label
+                ? AircraftLabels.Format(aircraft.Label, options.AircraftFormat)
                 : row.EquipmentCode;
 
             MappingEntry? oprEntry = mappings.Operators.Find(row.Operator);
@@ -159,6 +161,10 @@ namespace DelayReporter.Core.Report
             flight.OperatorLabel = oprEntry != null && oprEntry.Label.Length > 0
                 ? oprEntry.Label
                 : row.Operator;
+            flight.OperatorDisplay = options.UseOperatorLabels ? flight.OperatorLabel : flight.Operator;
+
+            if (options.MxOverrides.TryGetValue(row.SourceRowNumber, out bool mx))
+                flight.MxOverride = mx;
 
             foreach (DelayEvent source in row.Delay.Events)
             {
@@ -175,6 +181,9 @@ namespace DelayReporter.Core.Report
                     Label = entry != null && entry.Label.Length > 0 ? entry.Label : "(unmapped)",
                     Minutes = source.Minutes,
                     IsUnmapped = entry == null,
+                    Category = entry?.Category ?? string.Empty,
+                    MatchesCodeFilter = options.DelayCodes.Count == 0 ||
+                                        options.DelayCodes.Contains(MappingTable.Normalize(source.Code)),
                 });
 
                 if (entry != null && entry.SupplementaryRequired)

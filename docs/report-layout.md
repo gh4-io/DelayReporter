@@ -10,22 +10,26 @@ One sheet, `Departure delays`: a summary block, then one row per flight.
  3
  4  SUMMARY                          (A:H)      DELAY CODES BY TIME           (K:N)
  5  CVG departures          324               93B  Aircraft rotation   21:15   12 events
- 6  With coded delay        138               41A  Aircraft defects    12:01    9 events
- 7  Flights reported         95               ...
- 8  Delay events            158
- 9  Total coded delay    134:29
-10  Excluded by mapper  0 events
-11  Below threshold    43 flights
-12  Flights needing SI       44
-13  Coded/actual mismatches   0
-14  Unmapped codes            0
-15
-16  Date | MVT Nr | Reg | From | To | STD | ATD | Delay | OPR | Aircraft | Code | Reason | Dur | Notes
-17+ one row per flight
+ 6  No coded delay            9               41A  Aircraft defects    12:01    9 events
+ 7  With coded delay        138               ...
+ 8  With MX coded delay      22
+ 9  Below threshold    43 flights
+10  Flights reported         95
+11  Delay events            158
+12                                            [Detail, only when Settings > Show additional
+13                                             debug data is on: every other exclusion, mapping
+14                                             and reconciliation count, wrapped over one or
+15                                             more rows]
+16
+17  Date | MVT Nr | Reg | From | To | STD | ATD | Delay | OPR | Aircraft | Code | Reason | Dur | Notes
+18+ one row per flight
 ```
 
-Rows 1 to 16 are the print titles, so the summary and the column header repeat on every printed
-page. The pane is frozen below the header, and the header carries an autofilter.
+Rows 5 to 11 (or further, with the detail block) are the default summary; the exact row the table
+header lands on moves with it, since the detail block's length depends on how much it has to say.
+Only the table header row repeats when printed — the title, subtitle and summary are long enough
+now that they belong on page one alone. The pane is frozen below the header, and the header carries
+an autofilter.
 
 ## Columns
 
@@ -39,8 +43,8 @@ page. The pane is frozen below the header, and the header carries an autofilter.
 | F | STD | 7 | centred |
 | G | ATD | 7 | centred |
 | H | Delay | 8 | centred; bold red when the codes do not reconcile |
-| I | OPR | 6 | centred |
-| J | Aircraft | 20 | wrapped |
+| I | OPR | 18 when carrier names show, 6 when the raw code does | centred |
+| J | Aircraft | 20 | wrapped; family, family and variant, or the full label, per Settings |
 | K | Code | 7 | stacked, centred |
 | L | Reason | 46 | stacked, wrapped by the writer |
 | M | Dur | 7 | stacked, centred |

@@ -129,11 +129,13 @@ namespace DelayReporter.Core.Spreadsheet
 
                 w.WriteStartElement("definedNames", Ns);
 
-                // Repeat the summary block and the table header on every printed page.
+                // Repeat only the table header row on every printed page; the title, subtitle
+                // and summary block are long enough now that they belong on page one alone.
                 w.WriteStartElement("definedName", Ns);
                 w.WriteAttributeString("name", "_xlnm.Print_Titles");
                 w.WriteAttributeString("localSheetId", "0");
-                w.WriteString(quotedName + "!$1:$" + sheet.HeaderRow.ToString(CultureInfo.InvariantCulture));
+                w.WriteString(quotedName + "!$" + sheet.HeaderRow.ToString(CultureInfo.InvariantCulture) +
+                              ":$" + sheet.HeaderRow.ToString(CultureInfo.InvariantCulture));
                 w.WriteEndElement();
 
                 w.WriteStartElement("definedName", Ns);

@@ -15,6 +15,19 @@ namespace DelayReporter.Core.Report
         ActualDelay = 1,
     }
 
+    /// <summary>How much of a mapped aircraft label the report prints.</summary>
+    public enum AircraftLabelFormat
+    {
+        /// <summary>The model family alone, e.g. "767".</summary>
+        Family = 0,
+
+        /// <summary>The family and its variant when the label has one, e.g. "767-300".</summary>
+        FamilyAndVariant = 1,
+
+        /// <summary>The label as written in the mapping file, e.g. "Boeing 767-300 Freighter".</summary>
+        Full = 2,
+    }
+
     /// <summary>Everything the user chooses before a report is generated.</summary>
     public sealed class ReportOptions
     {
@@ -44,6 +57,25 @@ namespace DelayReporter.Core.Report
         public int MinimumDelayMinutes { get; set; } = DefaultMinimumDelayMinutes;
 
         public DelayThresholdBasis ThresholdBasis { get; set; } = DelayThresholdBasis.IncludedCodes;
+
+        /// <summary>
+        /// Per-flight corrections to the MX classification, keyed by the flight's source row
+        /// number: true counts the flight as MX, false keeps it out. A flight with no entry
+        /// takes its classification from the delay codes' category column. These live for the
+        /// open file only and are never saved.
+        /// </summary>
+        public Dictionary<int, bool> MxOverrides { get; } = new Dictionary<int, bool>();
+
+        /// <summary>The OPR column prints the mapped carrier name rather than the raw code.</summary>
+        public bool UseOperatorLabels { get; set; } = true;
+
+        public AircraftLabelFormat AircraftFormat { get; set; } = AircraftLabelFormat.Full;
+
+        /// <summary>
+        /// Appends a line to the summary carrying every count the default summary leaves out,
+        /// so a thin report can still be explained in full.
+        /// </summary>
+        public bool ShowDebugSummary { get; set; }
 
         /// <summary>
         /// Ground runs and tows carry no departure, no load and no delay codes, so the
@@ -80,11 +112,15 @@ namespace DelayReporter.Core.Report
                 DateTo = DateTo,
                 MinimumDelayMinutes = MinimumDelayMinutes,
                 ThresholdBasis = ThresholdBasis,
+                UseOperatorLabels = UseOperatorLabels,
+                AircraftFormat = AircraftFormat,
+                ShowDebugSummary = ShowDebugSummary,
             };
             foreach (string v in MovementTypes) copy.MovementTypes.Add(v);
             foreach (string v in Operators) copy.Operators.Add(v);
             foreach (string v in Registrations) copy.Registrations.Add(v);
             foreach (string v in DelayCodes) copy.DelayCodes.Add(v);
+            foreach (KeyValuePair<int, bool> pair in MxOverrides) copy.MxOverrides[pair.Key] = pair.Value;
             return copy;
         }
     }

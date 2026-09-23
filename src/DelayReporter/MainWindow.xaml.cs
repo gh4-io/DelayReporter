@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using DelayReporter.Controls;
 using DelayReporter.Core;
@@ -24,12 +25,39 @@ namespace DelayReporter
         private const string KeyMinimumDelay = "minimumDelayMinutes";
         private const string KeyBasis = "thresholdBasis";
         private const string KeyLastFolder = "lastFolder";
+        private const string KeyUnselectedCodes = "unselectedCodes";
+        private const string KeyOperatorLabels = "operatorLabels";
+        private const string KeyAircraftFormat = "aircraftFormat";
+        private const string KeyDebugSummary = "debugSummary";
+
+        private const double OperatorColumnCodeWidth = 46;
+        private const double OperatorColumnLabelWidth = 120;
+
+        /// <summary>
+        /// How the Codes column shows codes the Delay codes filter did not choose. A dependency
+        /// property so the column's cells follow a change without the report being rebuilt.
+        /// </summary>
+        public static readonly DependencyProperty UnselectedCodesProperty =
+            DependencyProperty.Register(
+                nameof(UnselectedCodes), typeof(UnselectedCodeDisplay), typeof(MainWindow),
+                new PropertyMetadata(UnselectedCodeDisplay.Visible));
 
         private readonly SettingsStore _settings = new SettingsStore();
         private readonly MappingStore _mappings = new MappingStore();
 
         private MovementSheet? _sheet;
         private ReportModel? _model;
+
+        /// <summary>
+        /// The user's per-flight MX corrections, keyed by source row number. The flights are
+        /// rebuilt on every change, so the corrections live here and are copied into each set
+        /// of options. They belong to the open file and are cleared when another is loaded.
+        /// </summary>
+        private readonly Dictionary<int, bool> _mxOverrides = new Dictionary<int, bool>();
+
+        private bool _useOperatorLabels = true;
+        private AircraftLabelFormat _aircraftFormat = AircraftLabelFormat.Full;
+        private bool _showDebugSummary;
 
         /// <summary>Set while the window is populating controls, to avoid recomputing per change.</summary>
         private bool _loading;
@@ -43,6 +71,12 @@ namespace DelayReporter
             // and by the time it bubbles here the ComboBox's Text already holds the new value.
             StationBox.AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler(OnOptionChanged));
             Loaded += OnLoaded;
+        }
+
+        public UnselectedCodeDisplay UnselectedCodes
+        {
+            get => (UnselectedCodeDisplay)GetValue(UnselectedCodesProperty);
+            set => SetValue(UnselectedCodesProperty, value);
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -63,6 +97,12 @@ namespace DelayReporter
                 .Equals("actual", StringComparison.OrdinalIgnoreCase);
             BasisActualRadio.IsChecked = actualBasis;
             BasisCodesRadio.IsChecked = !actualBasis;
+
+            UnselectedCodes = ParseEnum(_settings.Get(KeyUnselectedCodes, string.Empty), UnselectedCodeDisplay.Visible);
+            _useOperatorLabels = _settings.Get(KeyOperatorLabels, true);
+            _aircraftFormat = ParseEnum(_settings.Get(KeyAircraftFormat, string.Empty), AircraftLabelFormat.Full);
+            _showDebugSummary = _settings.Get(KeyDebugSummary, false);
+            SizeOperatorColumn();
             _loading = false;
 
             try
@@ -132,6 +172,9 @@ namespace DelayReporter
 
             FileText.Text = path;
             _settings.Set(KeyLastFolder, Path.GetDirectoryName(path) ?? string.Empty);
+
+            // Row numbers mean nothing in another file, so corrections do not carry over.
+            _mxOverrides.Clear();
 
             // Adopt the file's own station and period as the starting point.
             _loading = true;
@@ -215,7 +258,13 @@ namespace DelayReporter
                 ThresholdBasis = BasisActualRadio.IsChecked == true
                     ? DelayThresholdBasis.ActualDelay
                     : DelayThresholdBasis.IncludedCodes,
+                UseOperatorLabels = _useOperatorLabels,
+                AircraftFormat = _aircraftFormat,
+                ShowDebugSummary = _showDebugSummary,
             };
+
+            foreach (KeyValuePair<int, bool> pair in _mxOverrides)
+                options.MxOverrides[pair.Key] = pair.Value;
 
             options.MinimumDelayMinutes =
                 int.TryParse(MinimumDelayBox.Text.Trim(), NumberStyles.Integer,
@@ -263,44 +312,62 @@ namespace DelayReporter
                 : "No flights match the current filters.");
         }
 
+        /// <summary>The workbook's summary, worded the same, as one line plus the optional detail.</summary>
         private static string BuildSummary(ReportModel model)
         {
-            var text = new StringBuilder();
-            text.Append(model.RowsRead).Append(" rows read");
-            text.Append("   ·   not a ").Append(model.Station).Append(" departure ")
-                .Append(model.ExcludedNotStationDeparture);
-            text.Append("   ·   ").Append(model.Station).Append(" departures ").Append(model.StationDepartures);
-            text.Append("   ·   with coded delay ").Append(model.FlightsWithCodedDelay);
-            text.Append("   ·   reported ").Append(model.ReportedFlights);
-            text.Append("   ·   delay events ").Append(model.ReportedEvents);
-            text.Append("   ·   total coded ").Append(model.TotalCodedDelayText);
-            text.AppendLine();
-            text.Append("excluded by type ").Append(model.ExcludedByMovementType);
-            text.Append("   ·   by date ").Append(model.ExcludedByDate);
-            text.Append("   ·   by operator ").Append(model.ExcludedByOperator);
-            text.Append("   ·   by tail number ").Append(model.ExcludedByRegistration);
-            text.Append("   ·   no coded delay ").Append(model.ExcludedNoCodedDelay);
-            text.Append("   ·   by delay code ").Append(model.ExcludedByDelayCode);
-            text.Append("   ·   below threshold ").Append(model.ExcludedByThreshold);
-            text.AppendLine();
-            text.Append("excluded by mapper ").Append(model.ExcludedEvents).Append(" event(s)");
-            text.Append("   ·   needing SI ").Append(model.FlightsRequiringSupplementary);
-            text.Append("   ·   coded/actual mismatches ").Append(model.ReconciliationMismatches);
+            string text = ReportSummary.Line(ReportSummary.Metrics(model));
+            if (model.Options.ShowDebugSummary)
+                text += Environment.NewLine + "Detail — " + ReportSummary.DetailLine(model);
+            return text;
+        }
 
-            int unmapped = model.UnmappedCodes.Count();
-            if (unmapped > 0)
-                text.Append("   ·   unmapped codes ")
-                    .Append(string.Join(", ", model.UnmappedCodes.Select(c => c.Code)));
+        // ---- MX corrections ------------------------------------------------
 
-            var unmappedAircraft = model.UnmappedAircraft.ToList();
-            if (unmappedAircraft.Count > 0)
-                text.Append("   ·   unmapped aircraft ").Append(string.Join(", ", unmappedAircraft));
+        /// <summary>
+        /// Moves a flight's MX classification on one step: automatic, forced, excluded, then
+        /// automatic again. The box's own toggle is ignored; the rebuilt row shows the result.
+        /// </summary>
+        private void OnMxClick(object sender, RoutedEventArgs e)
+        {
+            if (!((sender as FrameworkElement)?.DataContext is ReportFlight flight)) return;
 
-            var unmappedOperators = model.UnmappedOperators.ToList();
-            if (unmappedOperators.Count > 0)
-                text.Append("   ·   unmapped operators ").Append(string.Join(", ", unmappedOperators));
+            int row = flight.SourceRowNumber;
+            switch (flight.MxOverride)
+            {
+                case null: _mxOverrides[row] = true; break;
+                case true: _mxOverrides[row] = false; break;
+                default: _mxOverrides.Remove(row); break;
+            }
 
-            return text.ToString();
+            // Rebuilding replaces every row, which would otherwise throw the list back to the
+            // top and lose the selection mid-way through ticking a long report.
+            ScrollViewer? scroll = FindDescendant<ScrollViewer>(FlightList);
+            double vertical = scroll?.VerticalOffset ?? 0;
+            double horizontal = scroll?.HorizontalOffset ?? 0;
+
+            Recompute();
+
+            FlightList.SelectedItem = _model?.Flights.FirstOrDefault(f => f.SourceRowNumber == row);
+            if (scroll != null)
+            {
+                Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+                {
+                    scroll.ScrollToVerticalOffset(vertical);
+                    scroll.ScrollToHorizontalOffset(horizontal);
+                }));
+            }
+        }
+
+        private static T? FindDescendant<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T match) return match;
+                T? found = FindDescendant<T>(child);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private void ShowWarnings(IEnumerable<string> warnings)
@@ -409,8 +476,17 @@ namespace DelayReporter
             _settings.Set(KeyStation, StationBox.Text.Trim().ToUpperInvariant());
             _settings.Set(KeyMinimumDelay, CurrentOptions().MinimumDelayMinutes);
             _settings.Set(KeyBasis, BasisActualRadio.IsChecked == true ? "actual" : "codes");
+            _settings.Set(KeyUnselectedCodes, UnselectedCodes.ToString());
+            _settings.Set(KeyOperatorLabels, _useOperatorLabels);
+            _settings.Set(KeyAircraftFormat, _aircraftFormat.ToString());
+            _settings.Set(KeyDebugSummary, _showDebugSummary);
             _settings.Save();
         }
+
+        private static T ParseEnum<T>(string text, T fallback) where T : struct =>
+            Enum.TryParse(text, ignoreCase: true, out T value) && Enum.IsDefined(typeof(T), value)
+                ? value
+                : fallback;
 
         protected override void OnClosed(EventArgs e)
         {
@@ -432,6 +508,44 @@ namespace DelayReporter
                 Status("Could not open the mappings folder: " + ex.Message);
             }
         }
+
+        private void OnSettings(object sender, RoutedEventArgs e)
+        {
+            var dialog = new SettingsDialog
+            {
+                Owner = this,
+                UnselectedCodes = UnselectedCodes,
+                UseOperatorLabels = _useOperatorLabels,
+                AircraftFormat = _aircraftFormat,
+                ShowDebugSummary = _showDebugSummary,
+            };
+            if (dialog.ShowDialog() != true) return;
+
+            bool changed = dialog.UnselectedCodes != UnselectedCodes ||
+                           dialog.UseOperatorLabels != _useOperatorLabels ||
+                           dialog.AircraftFormat != _aircraftFormat ||
+                           dialog.ShowDebugSummary != _showDebugSummary;
+            if (!changed) return;
+
+            UnselectedCodes = dialog.UnselectedCodes;
+            if (dialog.UseOperatorLabels != _useOperatorLabels)
+            {
+                _useOperatorLabels = dialog.UseOperatorLabels;
+                SizeOperatorColumn();
+            }
+            _aircraftFormat = dialog.AircraftFormat;
+            _showDebugSummary = dialog.ShowDebugSummary;
+
+            SaveSettings();
+            Recompute();
+        }
+
+        /// <summary>
+        /// A carrier name needs a wider column than a code. Set only when the choice changes,
+        /// so a width the user dragged is otherwise left alone.
+        /// </summary>
+        private void SizeOperatorColumn() =>
+            OperatorColumn.Width = _useOperatorLabels ? OperatorColumnLabelWidth : OperatorColumnCodeWidth;
 
         private void OnAbout(object sender, RoutedEventArgs e) =>
             new AboutDialog { Owner = this }.ShowDialog();

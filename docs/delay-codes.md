@@ -6,10 +6,10 @@
 v8.1*, embedded in the executable and written to `%APPDATA%\Delay Reporter\mappings\` on first run.
 
 ```csv
-code,label,exclude,si_required,si_remark
-0,Sort equipment failure,,No,
-1,Authorised reschedule of movement,,Yes,record root cause
-2,Non standard load,,Yes,record ULD ID
+code,label,exclude,si_required,si_remark,category
+0,Sort equipment failure,,No,,
+1,Authorised reschedule of movement,,Yes,record root cause,
+41,Aircraft / truck defects,,No,,MX
 ```
 
 | Column | From the source document | Notes |
@@ -19,12 +19,14 @@ code,label,exclude,si_required,si_remark
 | `exclude` | — | Added. Empty in the seed: nothing is excluded until you decide. |
 | `si_required` | SI Required | `Yes` for 66 of the 173 codes. |
 | `si_remark` | SI Remark | What must be recorded, e.g. `record ULD ID`. |
+| `category` | — | Added. A cause grouping kept apart from the label. The seed sets `MX` for every code in the 40s (maintenance); everything else ships uncategorised. Free text, and never fatal when empty — add your own groupings the same way. |
 
 The source table also carries Definition, Network Domain, Delay_Group, Delay_Category, a
 controllable/uncontrollable marker, and per-column markers for whether a code is valid on a
 departure, an arrival or a diversion. Those were transcribed and deliberately left out of the
-shipped file, which keeps the mapper short enough to edit by hand. They are the obvious source for
-grouped summaries — by Delay_Group, or controllable versus not — if that is ever wanted.
+shipped file, which keeps the mapper short enough to edit by hand. `category` is the one exception,
+added for the report's "with MX coded delay" figure — the obvious source for further grouped
+summaries, by Delay_Group or controllable versus not, if that is ever wanted.
 
 ## Matching
 

@@ -4,6 +4,34 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-23
+
+### Added
+
+- Delay codes carry an additional `category` column, seeded `MX` for every code in the 40s. The
+  summary reports "with MX coded delay", and each reported flight carries a tick in the preview to
+  force or exclude that classification for the file currently open — never saved, resets on reopen.
+- The OPR column shows the resolved carrier name by default; `operators.csv` grew from 8 to 13
+  entries, adding AeroLogic, EAT Leipzig, 21 Air, Kalitta Charters II and Singapore Airlines after
+  checking a real CVG movement sheet's operator codes against it.
+- A view option for how much of a mapped aircraft label the report shows: the model family alone
+  (`767`), family and variant (`767-300`), or the full label as written in the mapping file.
+- A new **Settings** dialog: the three choices above, plus how the preview's Codes column treats a
+  code the Delay codes filter did not choose — visible, dimmed or left out entirely. All four
+  persist across restarts; none of them change what the workbook contains except the operator and
+  aircraft choices, which apply to both by design.
+- A **Show additional debug data** setting appends one line to the summary, on screen and in the
+  workbook, carrying every exclusion, mapping and reconciliation count the default summary leaves
+  out.
+
+### Changed
+
+- The summary is trimmed to seven figures by default (station departures, no coded delay, with
+  coded delay, with MX coded delay, below threshold, flights reported, delay events) instead of the
+  nineteen it grew to in 0.2.0 — everything else moved behind the debug setting above.
+- Printing repeats only the table header row on pages after the first; the title, subtitle and
+  summary now belong to page one alone.
+
 ## [0.2.0] - 2026-09-23
 
 ### Added
@@ -67,5 +95,6 @@ First release.
   development sample and should be checked against the station's own fleet naming.
 - No codes are excluded by default, so the first report shows everything until the mapper is edited.
 
+[0.3.0]: https://github.com/gh4-io/delayreporter/releases/tag/v0.3.0
 [0.2.0]: https://github.com/gh4-io/delayreporter/releases/tag/v0.2.0
 [0.1.0]: https://github.com/gh4-io/delayreporter/releases/tag/v0.1.0

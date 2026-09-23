@@ -12,12 +12,27 @@ namespace DelayReporter.Core.Report
         public string Label { get; set; } = string.Empty;
         public int Minutes { get; set; }
         public bool IsUnmapped { get; set; }
+
+        /// <summary>The code's category from the mapping file, e.g. "MX"; empty when it has none.</summary>
+        public string Category { get; set; } = string.Empty;
+
+        /// <summary>
+        /// False when the Delay codes filter is restricting and this code is not one of those
+        /// chosen. The workbook prints every code regardless; only the preview uses this.
+        /// </summary>
+        public bool MatchesCodeFilter { get; set; } = true;
+
+        public bool IsMx => Category.Equals(ReportFlight.MxCategory, StringComparison.OrdinalIgnoreCase);
+
         public string Duration => DurationFormat.Format(Minutes);
     }
 
     /// <summary>One flight: one row of the report.</summary>
     public sealed class ReportFlight
     {
+        /// <summary>The delay code category that marks a maintenance delay.</summary>
+        public const string MxCategory = "MX";
+
         public int SourceRowNumber { get; set; }
         public DateTime? Date { get; set; }
         public string DateText { get; set; } = string.Empty;
@@ -30,6 +45,10 @@ namespace DelayReporter.Core.Report
         public string Operator { get; set; } = string.Empty;
         public string OperatorLabel { get; set; } = string.Empty;
         public bool OperatorUnmapped { get; set; }
+
+        /// <summary>What the OPR column shows: the carrier name or the raw code, per the options.</summary>
+        public string OperatorDisplay { get; set; } = string.Empty;
+
         public string EquipmentCode { get; set; } = string.Empty;
         public string AircraftLabel { get; set; } = string.Empty;
         public bool AircraftUnmapped { get; set; }
@@ -62,6 +81,34 @@ namespace DelayReporter.Core.Report
         /// <summary>One line describing the codes, for the on screen preview.</summary>
         public string CodeSummary =>
             string.Join(", ", Events.Select(e => e.Code + " " + e.Duration));
+
+        /// <summary>
+        /// The user's correction for this flight: true forces MX, false excludes it, null
+        /// leaves the classification to the codes.
+        /// </summary>
+        public bool? MxOverride { get; set; }
+
+        /// <summary>Any reported code on this flight carries the MX category.</summary>
+        public bool IsMxCoded => Events.Any(e => e.IsMx);
+
+        /// <summary>Whether the flight counts as an MX delay once any override is applied.</summary>
+        public bool IsMxDelay => MxOverride ?? IsMxCoded;
+
+        /// <summary>Explains the MX classification, for the preview's tooltip.</summary>
+        public string MxDescription
+        {
+            get
+            {
+                if (MxOverride == true) return "Forced MX for this file. Click to exclude it.";
+                if (MxOverride == false) return "Excluded from MX for this file. Click to return to automatic.";
+
+                List<string> codes = Events.Where(e => e.IsMx).Select(e => e.Code).Distinct().ToList();
+                string auto = codes.Count > 0
+                    ? "Automatic: MX, from code " + string.Join(", ", codes) + "."
+                    : "Automatic: no MX code on this flight.";
+                return auto + " Click to force MX.";
+            }
+        }
     }
 
     public sealed class CodeTally
@@ -124,6 +171,15 @@ namespace DelayReporter.Core.Report
         public int ReportedEvents => Flights.Sum(f => f.Events.Count);
         public int TotalCodedMinutes => Flights.Sum(f => f.CodedMinutes);
         public string TotalCodedDelayText => DurationFormat.Format(TotalCodedMinutes);
+
+        /// <summary>
+        /// Reported flights counted as maintenance delays: an MX-category code survived the
+        /// mapper's exclusion column, or the user forced the flight in, and was not excluded.
+        /// </summary>
+        public int FlightsWithMxDelay => Flights.Count(f => f.IsMxDelay);
+
+        /// <summary>Reported flights whose MX classification the user overrode.</summary>
+        public int MxOverriddenFlights => Flights.Count(f => f.MxOverride.HasValue);
 
         public int FlightsRequiringSupplementary => Flights.Count(f => f.SupplementaryPrompts.Count > 0);
         public int ReconciliationMismatches => Flights.Count(f => f.Reconciles == false);

@@ -36,6 +36,12 @@ namespace DelayReporter.Core.Report
         public const int ReasonWrapChars = 44;
         public const int NotesWrapChars = 28;
 
+        /// <summary>
+        /// Hard wrap width for the summary's detail line, which spans from the fourth column to
+        /// the last: comfortably under their combined width at the summary's 10pt.
+        /// </summary>
+        public const int DetailWrapChars = 130;
+
         /// <summary>Points per wrapped line at 10pt, plus a little padding per row.</summary>
         public const double LineHeight = 13.5;
         public const double RowPadding = 3.0;
@@ -47,7 +53,7 @@ namespace DelayReporter.Core.Report
         public static SheetSpec BuildSheet(ReportModel model)
         {
             var sheet = new SheetSpec { Name = "Departure delays" };
-            AddColumns(sheet);
+            AddColumns(sheet, model.Options);
 
             int last = sheet.LastColumn;
 
@@ -88,7 +94,7 @@ namespace DelayReporter.Core.Report
         public static void Write(string path, ReportModel model) =>
             XlsxWriter.Write(path, BuildSheet(model));
 
-        private static void AddColumns(SheetSpec sheet)
+        private static void AddColumns(SheetSpec sheet, ReportOptions options)
         {
             sheet.Columns.Add(new ColumnSpec("Date", 10));
             sheet.Columns.Add(new ColumnSpec("MVT Nr", 10));
@@ -98,7 +104,8 @@ namespace DelayReporter.Core.Report
             sheet.Columns.Add(new ColumnSpec("STD", 7));
             sheet.Columns.Add(new ColumnSpec("ATD", 7));
             sheet.Columns.Add(new ColumnSpec("Delay", 8));
-            sheet.Columns.Add(new ColumnSpec("OPR", 6));
+            // A carrier name needs room a three-letter code does not.
+            sheet.Columns.Add(new ColumnSpec("OPR", options.UseOperatorLabels ? 18 : 6));
             sheet.Columns.Add(new ColumnSpec("Aircraft", 20));
             sheet.Columns.Add(new ColumnSpec("Code", 7));
             sheet.Columns.Add(new ColumnSpec("Reason", 46));
@@ -120,29 +127,7 @@ namespace DelayReporter.Core.Report
 
         private static int WriteSummary(SheetSpec sheet, ReportModel model)
         {
-            var metrics = new List<KeyValuePair<string, string>>
-            {
-                Metric("Rows read", model.RowsRead),
-                Metric("Not a " + model.Station + " departure", model.ExcludedNotStationDeparture),
-                Metric(model.Station + " departures", model.StationDepartures),
-                Metric("Excluded by movement type", model.ExcludedByMovementType),
-                Metric("Excluded by date", model.ExcludedByDate),
-                Metric("Excluded by operator", model.ExcludedByOperator),
-                Metric("Excluded by tail number", model.ExcludedByRegistration),
-                Metric("No coded delay", model.ExcludedNoCodedDelay),
-                Metric("With coded delay", model.FlightsWithCodedDelay),
-                Metric("Dropped, all codes excluded", model.FlightsDroppedAllCodesExcluded),
-                Metric("Excluded by delay code", model.ExcludedByDelayCode),
-                new KeyValuePair<string, string>("Below threshold", model.ExcludedByThreshold + " flights"),
-                Metric("Flights reported", model.ReportedFlights),
-                Metric("Delay events", model.ReportedEvents),
-                new KeyValuePair<string, string>("Total coded delay", model.TotalCodedDelayText),
-                new KeyValuePair<string, string>("Excluded by mapper", model.ExcludedEvents + " events"),
-                Metric("Flights needing SI", model.FlightsRequiringSupplementary),
-                Metric("Coded/actual mismatches", model.ReconciliationMismatches),
-                Metric("Unmapped codes", model.UnmappedCodes.Count()),
-                Metric("Unmapped operators", model.UnmappedOperators.Count()),
-            };
+            IReadOnlyList<KeyValuePair<string, string>> metrics = ReportSummary.Metrics(model);
 
             for (int i = 0; i < metrics.Count; i++)
             {
@@ -163,11 +148,23 @@ namespace DelayReporter.Core.Report
                 sheet.Set(row, ColNotes, top[i].Events + " events", CellStyle.Value);
             }
 
-            return Math.Max(metrics.Count, top.Count);
-        }
+            int rows = Math.Max(metrics.Count, top.Count);
+            if (!model.Options.ShowDebugSummary) return rows;
 
-        private static KeyValuePair<string, string> Metric(string label, int value) =>
-            new KeyValuePair<string, string>(label, value.ToString(CultureInfo.InvariantCulture));
+            // The detail line runs the full width beneath both blocks, one row per wrapped
+            // line: the summary styles do not wrap, and the text is ours to wrap anyway.
+            List<string> lines = ReportSummary.DetailLines(model, DetailWrapChars);
+            int first = SummaryFirstRow + rows;
+            sheet.Set(first, 0, "Detail", CellStyle.Label);
+            sheet.Merge(first, 0, first, 2);
+            for (int i = 0; i < lines.Count; i++)
+            {
+                sheet.Set(first + i, 3, lines[i], CellStyle.Value);
+                sheet.Merge(first + i, 3, first + i, sheet.LastColumn);
+            }
+
+            return rows + lines.Count;
+        }
 
         private static void WriteHeader(SheetSpec sheet, int row)
         {
@@ -217,7 +214,7 @@ namespace DelayReporter.Core.Report
             sheet.Set(row, ColDelay, flight.ActualDelayText,
                       flight.Reconciles == false ? CellStyle.BodyFlag : CellStyle.BodyCenter);
 
-            sheet.Set(row, ColOperator, flight.Operator, CellStyle.BodyCenter);
+            sheet.Set(row, ColOperator, flight.OperatorDisplay, CellStyle.BodyCenter);
             sheet.Set(row, ColAircraft, flight.AircraftLabel, CellStyle.BodyWrap);
             sheet.Set(row, ColCode, string.Join("\n", codeLines), CellStyle.BodyStack);
             sheet.Set(row, ColReason, string.Join("\n", reasonLines), CellStyle.BodyWrap);

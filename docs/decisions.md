@@ -131,6 +131,49 @@ not need to change shape at all — only how the UI fills them. Station stays si
 an editable `ComboBox`, because it names one home station the whole report is measured from, not a
 set of values to include.
 
+## View settings live in ReportOptions, not beside it
+
+Operator-label substitution, the aircraft label format and the debug summary line all change what
+the preview shows and what the workbook prints, identically. CLAUDE.md's rule that "the preview and
+the saved workbook cannot disagree" means these could not be a WPF-only rendering trick: they are
+ordinary `ReportOptions` fields, resolved once in `ReportBuilder` and read from the same
+`ReportModel` by both `MainWindow` and `ReportWriter`. Delay-code dimming/hiding for codes the
+Delay codes filter did not choose is the one exception — it is deliberately screen-only, because
+letting it touch the exported workbook would mean the coded-duration total could stop reconciling
+with the clock delay, and an audited report silently losing lines is exactly what this project
+exists to prevent. That setting is a plain WPF field, not a `ReportOptions` field, because its whole
+point is to let the preview and the workbook differ.
+
+## MX is a code category, not a hard-coded list
+
+The report's "with MX coded delay" figure is driven by a `category` column on `delay-codes.csv`,
+seeded `MX` for the codes in the 40s, rather than a fixed set of code numbers baked into the
+application. This follows the same shape as `exclude` and `si_required`: a plain column the station
+can extend to its own codes, never fatal when blank, and never silently overwritten once edited.
+A per-flight tick can force or exclude a flight from that count for the file currently open — session
+only, never saved — because the seeded classification is a starting guess, not a claim about any
+one flight, and the user always has the last word on a report they are about to sign.
+
+## The summary got long enough to need two tiers
+
+Closing the "nothing disappears silently" gap (see above) grew the summary to nineteen line items,
+which stopped being a summary and started reading as a debug log. The fix keeps every one of those
+counts — dropping any of them would be the same silent gap in a different shape — but splits them
+into seven that describe the report as displayed (departures, coded or not, MX, threshold, reported,
+events) and everything else folded into one optional detail line, off by default. `ReportSummary` is
+the one place both the workbook and the on-screen preview build this text from, so the two cannot
+say different things about the same run.
+
+## Operator codes were checked against a real file, not guessed
+
+`operators.csv` started as eight carriers I was confident about. Checked against a real CVG
+movement sheet, five of its eleven distinct codes were missing. A quick web search misidentified
+one of them — it conflated AeroLogic with EAT Leipzig, two different DHL-network German cargo
+carriers whose ICAO and IATA codes are easy to cross — so each match was verified independently
+before being added, and the one code (`WIN`) that no source confirmed was left unmapped rather than
+guessed. A wrong carrier name in an operational report is worse than an honest "unmapped" tag, so
+the bar for adding a row here is confirmation, not plausibility.
+
 ## No continuous integration
 
 Neither sibling has CI, the build is Windows-only, and a workflow that cannot build a WPF

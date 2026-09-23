@@ -1,0 +1,51 @@
+<Window x:Class="DelayReporter.Views.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings"
+        Width="470" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{StaticResource WindowBrush}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+
+            <TextBlock Text="Delay codes not chosen in the filter" Style="{StaticResource SectionHeader}" Margin="0,0,0,4"/>
+            <RadioButton x:Name="CodesVisibleRadio" GroupName="Codes" Content="Visible"/>
+            <RadioButton x:Name="CodesDimmedRadio" GroupName="Codes" Content="Dimmed"/>
+            <RadioButton x:Name="CodesHiddenRadio" GroupName="Codes" Content="Hidden"/>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                       Text="Applies to the preview's Codes column while the Delay codes filter is narrowed. The workbook always lists every code, so its coded total still adds up."/>
+
+            <TextBlock Text="Operator" Style="{StaticResource SectionHeader}"/>
+            <CheckBox x:Name="OperatorLabelsCheck">
+                <TextBlock Text="Show the carrier name in the OPR column"/>
+            </CheckBox>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                       Text="Names come from operators.csv. Untick to show the raw operator code."/>
+
+            <TextBlock Text="Aircraft" Style="{StaticResource SectionHeader}"/>
+            <RadioButton x:Name="AircraftFamilyRadio" GroupName="Aircraft" Content="Family, e.g. 767"/>
+            <RadioButton x:Name="AircraftVariantRadio" GroupName="Aircraft" Content="Family and variant, e.g. 767-300"/>
+            <RadioButton x:Name="AircraftFullRadio" GroupName="Aircraft" Content="Full label, e.g. Boeing 767-300 Freighter"/>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                       Text="Aircraft types missing from aircraft-types.csv always show their EQP code."/>
+
+            <TextBlock Text="Summary" Style="{StaticResource SectionHeader}"/>
+            <CheckBox x:Name="DebugSummaryCheck">
+                <TextBlock Text="Show additional debug data"/>
+            </CheckBox>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                       Text="Adds a line to the summary, on screen and in the workbook, with every exclusion, mapping and reconciliation count."/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="OK" IsDefault="True" Click="OnOk"/>
+            <Button Content="Cancel" IsCancel="True" Margin="0"/>
+        </StackPanel>
+    </Grid>
+</Window>
