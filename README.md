@@ -102,14 +102,16 @@ clears the search.
 **Send email** writes the report as a draft `.eml` and opens it in your default mail app (Outlook,
 for most), the way OFT Scrubber does. Nothing is sent: you review the draft there and press Send.
 
-The draft is a compact table of the reported flights (date, flight, tail, operator, origin,
-destination, STD, ATD, delay, each code with its duration and reason). A line above the table says
-how many flights were left out by a search, hidden or not selected, and the full summary line closes
-the message. Recipients and whether to attach the workbook are set under Settings > Email; the
-workbook is attached by default.
+The draft is a compact table of the reported flights (date, operator, tail, flight, origin,
+destination, STD, ATD, delay, each code with its duration and reason), drawn in a monochrome "Ink
+Minimal" style: a bold rule under the header, no zebra striping, and each flight's codes given
+space of their own rather than a tight list. A line above the table says how many flights were left
+out by a search, hidden or not selected, and the full summary line closes the message. Recipients
+and whether to attach the workbook are set under Settings > Email; the workbook is attached by
+default.
 
-The email's style is being redrawn; the Outstanding column is left out of the table for now and
-returns once the new layout is settled.
+The Outstanding column is left out of the table for now; the plain-text draft still lists what
+each flight owes.
 
 ### Presets
 

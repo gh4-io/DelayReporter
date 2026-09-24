@@ -111,10 +111,10 @@ namespace DelayReporter.Core.Email
             html.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head>");
             html.Append("<body style=\"").Append(Font).Append("font-size:10pt;color:#1A1A1A;\">");
 
-            html.Append("<p style=\"margin:0 0 4px 0;font-size:13pt;font-weight:300;letter-spacing:.02em;color:")
+            html.Append("<p style=\"margin:0 0 4px 0;font-size:16px;font-weight:300;letter-spacing:.02em;color:")
                 .Append(Ink).Append(";\">").Append(Encode(model.Station + " departure delays"));
             string period = Period(model);
-            if (period.Length > 0) html.Append(" <span style=\"font-weight:300;color:").Append(Muted).Append(";font-size:10pt;\">")
+            if (period.Length > 0) html.Append(" <span style=\"font-weight:300;color:").Append(Muted).Append(";font-size:16px;\">")
                 .Append(Encode(period)).Append("</span>");
             html.Append("</p>");
 
@@ -139,7 +139,7 @@ namespace DelayReporter.Core.Email
                 .Append(Font).Append("font-size:9.5pt;\">");
 
             html.Append("<tr>");
-            foreach (string heading in new[] { "Date", "Flight", "Reg", "OPR", "From", "To", "STD", "ATD", "Delay", "Codes" })
+            foreach (string heading in new[] { "Date", "OPR", "Reg", "Flight", "From", "To", "STD", "ATD", "Delay", "Codes" })
             {
                 html.Append("<th style=\"text-align:left;padding:6px 10px;border-bottom:2px solid ").Append(Ink)
                     .Append(";font-size:8pt;letter-spacing:.05em;text-transform:uppercase;color:").Append(Ink)
@@ -151,11 +151,9 @@ namespace DelayReporter.Core.Email
             {
                 html.Append("<tr>");
                 Cell(html, Encode(flight.DateText), nowrap: true);
-
-                Cell(html, "<b>" + Encode(flight.FlightNumber) + "</b>", nowrap: true);
-
-                Cell(html, Encode(flight.Registration), nowrap: true);
                 Cell(html, Encode(flight.OperatorDisplay), nowrap: true);
+                Cell(html, Encode(flight.Registration), nowrap: true);
+                Cell(html, "<b>" + Encode(flight.FlightNumber) + "</b>", nowrap: true);
                 Cell(html, Encode(flight.From), nowrap: true);
                 Cell(html, Encode(flight.To), nowrap: true);
                 Cell(html, Encode(flight.ScheduledText), nowrap: true);
@@ -204,7 +202,7 @@ namespace DelayReporter.Core.Email
                 string delay = flight.ActualDelayText.Length > 0 ? flight.ActualDelayText : flight.CodedDelayText;
                 text.AppendLine(string.Join("  ", new[]
                 {
-                    flight.DateText, flight.FlightNumber, flight.Registration, flight.OperatorDisplay,
+                    flight.DateText, flight.OperatorDisplay, flight.Registration, flight.FlightNumber,
                     flight.From, flight.To, "STD " + flight.ScheduledText, "ATD " + flight.ActualText,
                     "delay " + delay,
                 }.Where(s => s.Trim().Length > 0)));

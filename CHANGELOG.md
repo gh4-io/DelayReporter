@@ -25,9 +25,10 @@ All notable changes to this project are documented here. The format follows
 - The email is redrawn in a new "Ink Minimal" style: monochrome, a bold rule under the header row
   instead of a filled navy band, no zebra striping, wider row padding, and each flight's delay
   codes stacked with space between them rather than a tight `<br>` list. A reconciliation mismatch
-  and an MX-coloured delay still print in red; colour is otherwise spent nowhere else. The table
-  gains **OPR** and **From** columns; its **Outstanding** column is left out for now (the plain
-  text version still lists what each flight owes).
+  and an MX-coloured delay still print in red; colour is otherwise spent nowhere else. Its title
+  line is a uniform 16px. The table gains **OPR** and **From** columns, in the order Date, OPR,
+  Reg, Flight, From, To, STD, ATD, Delay, Codes; its **Outstanding** column is left out for now
+  (the plain text version still lists what each flight owes).
 - The options pane drops its explanatory hint lines under Station, Movement types, Delay codes and
   Tail numbers, including the "most rows in this file depart from…" note; that same check still
   appears as a warning on the summary when the station setting looks wrong.
