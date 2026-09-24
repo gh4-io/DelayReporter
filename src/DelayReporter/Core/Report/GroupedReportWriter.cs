@@ -35,8 +35,27 @@ namespace DelayReporter.Core.Report
 
         /// <summary>Hard wrap widths, a little under the column widths below.</summary>
         public const int ReasonWrapChars = 36;
-        public const int NotesWrapChars = 40;
         public const int DetailWrapChars = 130;
+
+        /// <summary>
+        /// The table's total width, in Excel character units. It stays the same whatever the
+        /// options, so the page prints at the same scale; width the sized columns do not need
+        /// goes to Notes.
+        /// </summary>
+        public const int TableWidth = 199;
+        public const int MinimumNotesWidth = 30;
+
+        /// <summary>
+        /// OPR and Aircraft are sized to what the report holds: the narrowest width at which
+        /// every value fits on this many lines, which a minimum-height row already has room for.
+        /// </summary>
+        public const int SizedColumnLines = 2;
+        public const int MaximumSizedChars = 22;
+
+        /// <summary>Space around the text in a sized column, since Excel wraps by pixels, not characters.</summary>
+        private const int SizedColumnPadding = 2;
+
+        public const string PromptTitle = "Supplementary information";
 
         /// <summary>
         /// Points per stacked line at 10pt, and the space added around the stack. The padding
@@ -57,7 +76,9 @@ namespace DelayReporter.Core.Report
         public static SheetSpec BuildSheet(ReportModel model)
         {
             var sheet = new SheetSpec { Name = "Departure delays" };
-            AddColumns(sheet, model.Options);
+            int operatorChars = FitChars(model.Flights.Select(f => f.OperatorDisplay), "OPR");
+            int aircraftChars = FitChars(model.Flights.Select(f => f.AircraftLabel), "Aircraft");
+            AddColumns(sheet, operatorChars + SizedColumnPadding, aircraftChars + SizedColumnPadding);
 
             int last = sheet.LastColumn;
 
@@ -88,7 +109,7 @@ namespace DelayReporter.Core.Report
 
             int row = headerRow + 1;
             foreach (ReportFlight flight in model.Flights)
-                row = WriteFlight(sheet, row, flight);
+                row = WriteFlight(sheet, row, flight, operatorChars, aircraftChars);
 
             // An empty report still needs a valid filter range.
             sheet.LastRow = Math.Max(sheet.LastRow, headerRow);
@@ -104,7 +125,7 @@ namespace DelayReporter.Core.Report
             return sheet;
         }
 
-        private static void AddColumns(SheetSpec sheet, ReportOptions options)
+        private static void AddColumns(SheetSpec sheet, int operatorWidth, int aircraftWidth)
         {
             sheet.Columns.Add(new ColumnSpec("Date", 11));
             sheet.Columns.Add(new ColumnSpec("MVT Nr", 10));
@@ -115,14 +136,33 @@ namespace DelayReporter.Core.Report
             sheet.Columns.Add(new ColumnSpec("ATD", 8));
             // Wide enough for a flagged "0:32 ≠ 0:25" on one line.
             sheet.Columns.Add(new ColumnSpec("Delay", 11));
-            sheet.Columns.Add(new ColumnSpec("OPR", options.UseOperatorLabels ? 18 : 6));
-            sheet.Columns.Add(new ColumnSpec("Aircraft", 18));
+            sheet.Columns.Add(new ColumnSpec("OPR", operatorWidth));
+            sheet.Columns.Add(new ColumnSpec("Aircraft", aircraftWidth));
             sheet.Columns.Add(new ColumnSpec("Code", 7));
             // Most reasons fit in 36 characters; the width they give up goes to Notes, which
             // is where the page is written on.
             sheet.Columns.Add(new ColumnSpec("Reason", 38));
             sheet.Columns.Add(new ColumnSpec("Dur", 7));
-            sheet.Columns.Add(new ColumnSpec("Notes", 42));
+
+            double used = sheet.Columns.Sum(c => c.Width);
+            sheet.Columns.Add(new ColumnSpec("Notes", Math.Max(MinimumNotesWidth, TableWidth - used)));
+        }
+
+        /// <summary>
+        /// The narrowest width, in characters, at which every value wraps onto no more than
+        /// <see cref="SizedColumnLines"/> lines: never narrower than the heading, and never wider
+        /// than <see cref="MaximumSizedChars"/>, beyond which a long value takes a third line
+        /// rather than squeezing Notes. "Boeing 767-300 Freighter" gives 14, as two lines.
+        /// </summary>
+        private static int FitChars(IEnumerable<string> values, string heading)
+        {
+            List<string> distinct = values.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList();
+            for (int chars = heading.Length; chars < MaximumSizedChars; chars++)
+            {
+                if (distinct.All(v => TextWrap.Wrap(v, chars).Count <= SizedColumnLines))
+                    return chars;
+            }
+            return MaximumSizedChars;
         }
 
         /// <summary>The line under the title, in the manner of "Period: ... LT" on the printed reports.</summary>
@@ -208,7 +248,7 @@ namespace DelayReporter.Core.Report
             column == ColDate || column == ColFrom || column == ColTo || column == ColScheduled ||
             column == ColActual || column == ColDelay || column == ColCode;
 
-        private static int WriteFlight(SheetSpec sheet, int row, ReportFlight flight)
+        private static int WriteFlight(SheetSpec sheet, int row, ReportFlight flight, int operatorChars, int aircraftChars)
         {
             var codeLines = new List<string>();
             var reasonLines = new List<string>();
@@ -232,10 +272,15 @@ namespace DelayReporter.Core.Report
                 }
             }
 
-            string notes = string.Join("; ", flight.SupplementaryPrompts);
-            List<string> noteLines = notes.Length > 0 ? TextWrap.Wrap(notes, NotesWrapChars) : new List<string>();
-
-            int lines = Math.Max(Math.Max(reasonLines.Count, noteLines.Count), 1);
+            // OPR and Aircraft are wrapped by Excel, but at widths chosen from these same wraps,
+            // so the row can be sized for them too.
+            int lines = new[]
+            {
+                reasonLines.Count,
+                TextWrap.Wrap(flight.OperatorDisplay, operatorChars).Count,
+                TextWrap.Wrap(flight.AircraftLabel, aircraftChars).Count,
+                1,
+            }.Max();
             sheet.SetHeight(row, Math.Max(MinimumRowHeight, lines * LineHeight + RowPadding));
 
             sheet.Set(row, ColDate, flight.DateText, CellStyle.GroupedCellCenter);
@@ -257,7 +302,13 @@ namespace DelayReporter.Core.Report
             sheet.Set(row, ColCode, string.Join("\n", codeLines), CellStyle.GroupedCellStack);
             sheet.Set(row, ColReason, string.Join("\n", reasonLines), CellStyle.GroupedCellWrap);
             sheet.Set(row, ColDuration, string.Join("\n", durationLines), CellStyle.GroupedCellStackRight);
-            sheet.Set(row, ColNotes, string.Join("\n", noteLines), CellStyle.GroupedNotes);
+            // Notes is left empty to be written or typed in. What the codes oblige the station
+            // to record is a hint Excel shows while the cell is selected; it never prints. The
+            // summary still counts the flights that owe it, and the email lists it.
+            sheet.Set(row, ColNotes, string.Empty, CellStyle.GroupedNotes);
+            if (flight.SupplementaryPrompts.Count > 0)
+                sheet.InputPrompts.Add(new InputPrompt(SheetSpec.CellName(row, ColNotes), PromptTitle,
+                                                       string.Join("; ", flight.SupplementaryPrompts)));
 
             return row + 1;
         }

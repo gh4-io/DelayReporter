@@ -75,7 +75,7 @@ namespace DelayReporter.Core.Spreadsheet
     <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center"" wrapText=""1""/></xf>
     <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center"" wrapText=""1""/></xf>
     <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""right"" vertical=""center"" indent=""1"" wrapText=""1""/></xf>
-    <xf numFmtId=""0"" fontId=""7"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center"" wrapText=""1""/></xf>
+    <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center"" wrapText=""1""/></xf>
     <xf numFmtId=""0"" fontId=""8"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center""/></xf>
   </cellXfs>
   <cellStyles count=""1""><cellStyle name=""Normal"" xfId=""0"" builtinId=""0""/></cellStyles>

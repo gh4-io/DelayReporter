@@ -48,15 +48,28 @@ autofilter, whose buttons show on screen but never print.
 | F | STD | 7 | centred |
 | G | ATD | 8 | centred |
 | H | Delay | 11 | centred; bold red, both figures, when the codes do not reconcile |
-| I | OPR | 18 when carrier names show, 6 when the raw code does | left, wrapped |
-| J | Aircraft | 18 | left, wrapped |
+| I | OPR | sized to the report, see below | left, wrapped |
+| J | Aircraft | sized to the report, see below | left, wrapped |
 | K | Code | 7 | stacked, centred |
 | L | Reason | 38 | stacked, wrapped by the writer at 36 characters |
 | M | Dur | 7 | stacked, right aligned so the minutes line up |
-| N | Notes | 42 | grey italic prompts, wrapped by the writer at 40 characters |
+| N | Notes | whatever is left of 199, at least 30 | empty, to be written or typed in |
 
-Reason is narrower than in the classic layout and Notes wider: most reasons fit in 36 characters,
-and Notes is where the printed page gets written on.
+Reason is narrower than in the classic layout: most reasons fit in 36 characters, and the width
+goes to Notes, which is where the printed page gets written on.
+
+## Sized columns
+
+OPR and Aircraft take their width from the flights in the report, so they follow the settings that
+change them (carrier names on or off, the Min, Std or Full aircraft label) and the data itself.
+Each gets the narrowest width at which every value fits on two lines, since a minimum-height row
+already has room for two, plus two characters of padding because Excel wraps by pixels. The width
+is never narrower than the heading and never more than 22 characters; a value longer than that
+takes a third line and the row grows to fit.
+
+The table's total width stays at 199 character units whatever the options, so the page always
+prints at the same scale, and every unit OPR and Aircraft do not need goes to Notes. On the sample,
+full aircraft labels give Aircraft 16 and Notes 46; the Min label gives Aircraft 10 and Notes 52.
 
 ## Vertical alignment
 
@@ -75,8 +88,8 @@ delay block.
 
 ## Row height
 
-`max(lines × 13.5pt + 16pt, 36pt)`, where lines is the larger of the stacked delay lines and the
-wrapped notes. The 16pt of padding and the 36pt floor, about half an inch, leave room to write on
+`max(lines × 13.5pt + 16pt, 36pt)`, where lines is the largest of the stacked delay lines and the
+wrapped OPR and Aircraft values. The 16pt of padding and the 36pt floor, about half an inch, leave room to write on
 even a one-code flight. Header row 24pt, title 28pt.
 
 ## Groups of five
@@ -95,9 +108,17 @@ group can straddle a page break.
 
 ## Notes
 
-Left blank for the station to fill in, except where a flight's codes oblige supplementary
-information; those prompts are pre-filled in grey italic, as in the classic layout. The summary
-counts how many flights still owe supplementary information.
+Every Notes cell is left empty, so it is clean to write on when printed and to type into on
+screen, with nothing to delete first. Where a flight's codes oblige supplementary information,
+what is required (`record ULD ID`, `record causing movement(s)`) is a hint rather than cell text:
+Excel shows it beside the cell, titled *Supplementary information*, while the cell is selected. It
+is written as a data validation that restricts nothing and carries only an input message, so it
+never prints and never gets in the way of what is typed. Excel caps the message at 255 characters;
+a longer one is cut with an ellipsis.
+
+The classic layout still pre-fills these prompts as grey italic cell text. The summary counts how
+many flights owe supplementary information in both layouts, and the email lists it per flight
+under Outstanding, so moving the prompt off the page loses nothing from the report.
 
 ## Print setup
 
@@ -129,7 +150,7 @@ unchanged; the grouped layout's are appended after them.
 | 25 | GroupedCellWrap | Reason, OPR and Aircraft |
 | 26 | GroupedCellStack | Code |
 | 27 | GroupedCellStackRight | Dur |
-| 28 | GroupedNotes | The notes column |
+| 28 | GroupedNotes | The notes column: regular 10pt, for whatever is typed there |
 | 29 | GroupedFlag | A delay that does not reconcile |
 
 | dxf | Style | Use |

@@ -246,6 +246,9 @@ try {
     Assert (-not ($draft.Html -match 'ZZ101')) 'but not the hidden one'
     Assert ($draft.Html -match '1 flight hidden by hand is not listed') 'and says a flight was hidden'
     Assert ($draft.PlainText -match 'Outstanding: record ULD ID') 'the plain text carries what is outstanding'
+    $full = [DelayReporter.Core.Email.DelayEmail]::Compose($model, '', '', $null)
+    Assert ($model.FlightsWithMxDelay -gt 0 -and -not ($full.Html -match '>MX</span>') -and -not ($full.PlainText -match '\(MX\)')) `
+        'MX flights are not tagged beside their flight number'
     $notes = $null
     $eml = [Text.Encoding]::ASCII.GetString([DelayReporter.Core.Email.EmlDraftWriter]::ToBytes($draft, [ref]$notes))
     Assert ($eml.StartsWith('X-Unsent: 1')) 'the draft opens unsent in the mail app'
@@ -267,6 +270,24 @@ try {
     AssertEqual "MOD(SUBTOTAL(103,`$B`$$($firstFlight):`$B$($firstFlight)),5)=0" $spec.ConditionalRules[0].Formula `
         'every fifth visible flight closes a group'
     AssertEqual "A$($firstFlight):N$($spec.LastRow)" $spec.ConditionalRules[0].Range 'over the flights only'
+
+    $notesText = @(foreach ($r in $firstFlight..$spec.LastRow) { $spec.Rows[$r][13].Text }) -join ''
+    AssertEqual '' $notesText 'the Notes cells are left empty to write in'
+    AssertEqual $model.FlightsRequiringSupplementary $spec.InputPrompts.Count 'each flight owing information gets a hint instead'
+    Assert (@($spec.InputPrompts | Where-Object { $_.Text -match 'record ULD ID' }).Count -ge 1) 'and the hint says what to record'
+
+    function WidthOf($s, $name) { ($s.Columns | Where-Object { $_.Header -eq $name }).Width }
+    function TotalWidth($s) { ($s.Columns | Measure-Object -Property Width -Sum).Sum }
+    $narrow = $options.Clone()
+    $narrow.AircraftFormat = [DelayReporter.Core.Report.AircraftLabelFormat]::Family
+    $narrowSpec = [DelayReporter.Core.Report.ReportWriter]::BuildSheet(
+        [DelayReporter.Core.Report.ReportBuilder]::Build($sheet, $store, $narrow))
+    Assert ((WidthOf $narrowSpec 'Aircraft') -lt (WidthOf $spec 'Aircraft')) `
+        "the Aircraft column narrows with the Min label ($(WidthOf $narrowSpec 'Aircraft') < $(WidthOf $spec 'Aircraft'))"
+    Assert ((WidthOf $narrowSpec 'Notes') -gt (WidthOf $spec 'Notes')) 'and Notes takes what it gives up'
+    AssertEqual (TotalWidth $spec) (TotalWidth $narrowSpec) 'so the table prints at the same scale'
+    Assert ((WidthOf $spec 'Aircraft') -le 16) "a full aircraft label wraps to two lines rather than widening ($(WidthOf $spec 'Aircraft'))"
+    Assert ((WidthOf $spec 'OPR') -le 6) "unnamed operators keep OPR narrow ($(WidthOf $spec 'OPR'))"
 
     $classicOptions = $options.Clone()
     $classicOptions.Layout = [DelayReporter.Core.Report.ReportLayout]::Classic
@@ -301,8 +322,12 @@ try {
         # Schema order: mergeCells, then conditionalFormatting, then printOptions.
         $order = @($xml.worksheet.ChildNodes | ForEach-Object { $_.LocalName })
         Assert ($order.IndexOf('mergeCells') -lt $order.IndexOf('conditionalFormatting') -and
-                $order.IndexOf('conditionalFormatting') -lt $order.IndexOf('printOptions')) `
-            'conditional formatting sits between the merges and the print setup'
+                $order.IndexOf('conditionalFormatting') -lt $order.IndexOf('dataValidations') -and
+                $order.IndexOf('dataValidations') -lt $order.IndexOf('printOptions')) `
+            'merges, conditional formatting, hints and print setup come in schema order'
+        $hint = @($xml.worksheet.dataValidations.dataValidation)[0]
+        AssertEqual '1' $hint.showInputMessage 'a hint shows when its Notes cell is selected'
+        Assert ($null -eq $hint.type) 'and restricts nothing typed there'
 
         # CellStyle and DifferentialStyle index the style table; a count out of step with
         # either enum means the report is silently restyled.

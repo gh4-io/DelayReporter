@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-23
+
 ### Changed
 
 - The workbook has a new default layout, modelled on printed movement delay reports: black on
@@ -14,6 +16,28 @@ All notable changes to this project are documented here. The format follows
   to write in. The rule is conditional formatting, so it stays in fives when the sheet is sorted
   or filtered in Excel. A mismatched delay shows both figures, `0:32 ≠ 0:25`, so it still reads on
   a black and white printout.
+- In the grouped layout, the Notes cells are left empty. The supplementary information a flight
+  owes is a hint Excel shows while the cell is selected, and it never prints. OPR and Aircraft are
+  sized to what the report holds, wrapping onto two lines where needed, and the width they do not
+  need goes to Notes, so the page always prints at the same scale.
+- The email no longer tags MX flights beside their flight number. The headline still counts
+  flights with MX coded delay, and an MX-only report still says so in its subject.
+- The email is redrawn in a new "Ink Minimal" style: monochrome, a bold rule under the header row
+  instead of a filled navy band, no zebra striping, wider row padding, and each flight's delay
+  codes stacked with space between them rather than a tight `<br>` list. A reconciliation mismatch
+  and an MX-coloured delay still print in red; colour is otherwise spent nowhere else. The table
+  gains **OPR** and **From** columns; its **Outstanding** column is left out for now (the plain
+  text version still lists what each flight owes).
+- The options pane drops its explanatory hint lines under Station, Movement types, Delay codes and
+  Tail numbers, including the "most rows in this file depart from…" note; that same check still
+  appears as a warning on the summary when the station setting looks wrong.
+- A freshly opened file now starts with every movement type and every tail number ticked (no
+  restriction), instead of ticking only the flight-movement types. Operators start ticked to the
+  station's own default carriers (`S3`, `CJT`, `CKS`, `CSB`, `DHK`, `KII`, `SIA`) rather than every
+  operator in the file, falling back to no restriction when none of them are present.
+- The **Standard** preset now applies no restriction to movement types too, matching its other
+  three lists, instead of narrowing to flight movements only.
+- The default date format is `dd MMM yyyy` (`23 Sep 2026`) rather than as written in the file.
 
 - The window is redesigned to match ICS Scrubber and OFT Scrubber, and now uses their shared
   `Fluent.xaml` and `Shell.xaml` theme unchanged: a File menu, Home, Presets, View and Help ribbon
@@ -54,9 +78,9 @@ All notable changes to this project are documented here. The format follows
   applied to the preview, workbook and email.
 - A search bar over the flight list that looks through every field of every flight. It narrows the report like any
   other filter, and the flights it leaves out are counted on the summary.
-- **Send email** opens a compact draft of the report in the default mail app, with an Outstanding
-  column of what is still owed on each flight, optionally with the workbook attached.
-- An Outstanding column in the preview, matching the email.
+- **Send email** opens a compact draft of the report in the default mail app, optionally with the
+  workbook attached.
+- An Outstanding column in the preview, listing what is still owed on each flight.
 - Presets: three built in, plus your own saved under `%APPDATA%\Delay Reporter\presets\`.
 
 ## [0.3.1] - 2026-09-23

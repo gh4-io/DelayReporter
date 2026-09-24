@@ -4,7 +4,7 @@ A Windows tool that reads a movement sheet, pulls the coded departure delays out
 every code against an editable list, and writes a professional, printable Excel workbook with room
 for the station's own notes.
 
-**Version 0.3.1.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
+**Version 0.4.0.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
 or build it from source. Copy the executable anywhere and run it: there is no installer, no runtime
 to install, no companion DLL, and it never needs administrator rights. Build output and release
 binaries are not stored in Git.
@@ -102,18 +102,19 @@ clears the search.
 **Send email** writes the report as a draft `.eml` and opens it in your default mail app (Outlook,
 for most), the way OFT Scrubber does. Nothing is sent: you review the draft there and press Send.
 
-The draft is a compact table of the reported flights (date, flight, tail, destination, STD, ATD,
-delay, each code with its duration and reason) with an **Outstanding** column listing what is still
-owed on each flight: the supplementary information its codes require, a coded total that does not
-match the clock, a code missing from the list. MX flights are tagged. A line above the table says
+The draft is a compact table of the reported flights (date, flight, tail, operator, origin,
+destination, STD, ATD, delay, each code with its duration and reason). A line above the table says
 how many flights were left out by a search, hidden or not selected, and the full summary line closes
 the message. Recipients and whether to attach the workbook are set under Settings > Email; the
 workbook is attached by default.
 
+The email's style is being redrawn; the Outstanding column is left out of the table for now and
+returns once the new layout is settled.
+
 ### Presets
 
 The Presets tab applies a named set of filters in one click. Three are built in: **Standard** (15
-minutes of included codes, flight movements only), **Every coded delay** (no minimum) and **Over an
+minutes of included codes, no other filter), **Every coded delay** (no minimum) and **Over an
 hour** (60 minutes by the clock). None of them changes the station. **Save current as** stores the
 station, minimum delay, basis, MX filter and the four lists under a name of your own; the dates never are,
 because they come from each file. **Manage** renames and deletes them. A value a preset asks for
@@ -128,7 +129,7 @@ list left with nothing to tick says that it is no longer narrowing anything.
 | **Minimum delay** | Flights under this are left out. The steppers (or the arrow keys) move in fives. **Coded** measures against the sum of the delay codes that survive the mapper's exclusion column, **Actual** against the `ATD − STD` clock delay. Zero reports every flight that carries a code. |
 | **MX delays** | **All**, **MX only** or **Not MX**. A flight counts as MX when one of its codes maps to `MX` in the `category` column, or when its MX box is ticked by hand. Flights the filter leaves out are counted in the summary's detail, and the workbook's subtitle and the email both say the report is MX only. If `delay-codes.csv` marks no code as MX (a copy written before 0.3.0 has no `category` column), the report says so rather than coming out empty without explanation. |
 | **Dates** | Defaults to the period named in the file. |
-| **Movement types**, **Operators**, **Delay codes**, **Tail numbers** | Multi-select dropdowns, built from the values actually present in the loaded file. Operators and delay codes show the mapped label beside the code once one exists. Ticking nothing and ticking everything both mean no restriction, so the report stays stable if a later file holds a value this one did not. Movement types default to the types that are actual flights; ground runs (`T/GR`) and tows (`T/XL`) start unticked, because they carry no departure and no delay codes. |
+| **Movement types**, **Operators**, **Delay codes**, **Tail numbers** | Multi-select dropdowns, built from the values actually present in the loaded file. Operators and delay codes show the mapped label beside the code once one exists. Ticking nothing and ticking everything both mean no restriction, so the report stays stable if a later file holds a value this one did not. Movement types and tail numbers start with everything ticked (no restriction); Operators starts with the station's own default carriers ticked (`S3`, `CJT`, `CKS`, `CSB`, `DHK`, `KII`, `SIA`), falling back to no restriction when a file holds none of them; delay codes start unticked. |
 
 ### Reconciliation
 
@@ -158,7 +159,7 @@ code,label,exclude,si_required,si_remark,category
 | `code` | As published. The sheet's zero-padded `09` matches the list's `9` automatically. |
 | `label` | What the report prints. |
 | `exclude` | `Y` drops that code's events from the report. The flight keeps its other codes; a flight whose codes are *all* excluded leaves the report. Excluded events are counted on the summary, so the number stays auditable. |
-| `si_required`, `si_remark` | 66 codes oblige the station to record supplementary information. When one applies, the flight's Notes cell is pre-filled with what is required — `record ULD ID`, `record causing movement(s)` — turning the report into a checklist of what is still owed. |
+| `si_required`, `si_remark` | 66 codes oblige the station to record supplementary information. When one applies, what is required — `record ULD ID`, `record causing movement(s)` — is attached to the flight's Notes cell as a hint Excel shows while the cell is selected. The cell itself stays empty to write in, and the hint never prints. The summary counts the flights that still owe it, and the email lists it under Outstanding. (The Classic layout pre-fills the cell with it instead.) |
 | `category` | A cause grouping, kept apart from the label. Seeded with `MX` for every code in the 40s (maintenance); free text otherwise, and uncategorised is never an error. Drives the summary's "with MX coded delay" figure. Each flight also carries its own tick in the preview, ticked when any of its codes maps to `MX` and clear otherwise. Clicking it corrects the flight by hand for that run; clicking back to what the mapping would already say drops the correction. Never saved, and resets when you open another file. |
 
 `aircraft-types.csv` maps the `EQP` column (`77X`, `76Y`, …) to readable names, with the same
@@ -178,9 +179,9 @@ down the left, on-and-off choices as sliding switches. Nothing applies until **S
 
 | Page | Setting | Effect |
 |---|---|---|
-| Report | **Workbook layout** | **Grouped**, the default: black on white, tall rows centred vertically, flights in groups of five under a thin rule, and a wide Notes column to write in. **Classic**: the boxed, blue-banded layout used up to 0.3.1, kept unchanged for comparison. Both write the same flights, columns and summary. See [report layout](docs/report-layout.md). |
+| Report | **Workbook layout** | **Grouped**, the default: black on white, tall rows centred vertically, flights in groups of five under a thin rule, and an empty Notes column to write in. OPR and Aircraft are sized to what they hold, so a shorter aircraft label or raw operator codes give Notes more room. **Classic**: the boxed, blue-banded layout used up to 0.3.1, kept unchanged for comparison. Both write the same flights, columns and summary. See [report layout](docs/report-layout.md). |
 | Report | **Show the carrier name in the OPR column** | On by default. Applies to the preview, the workbook and the email. |
-| Report | **Date format** | As in the file, or one of five patterns. Applies to the preview, the workbook and the email; also on the Date heading's right-click menu. The date pickers follow it. |
+| Report | **Date format** | As in the file, or one of five patterns; `14 Sep 2026` by default. Applies to the preview, the workbook and the email; also on the Date heading's right-click menu. The date pickers follow it. |
 | Report | **Aircraft** | **Min** (`767`), **Std** (`767-300`), or **Full**, the mapped label as written (`Boeing 767-300 Freighter`). Applies to the workbook's Aircraft column; an aircraft type missing from `aircraft-types.csv` always shows its raw `EQP` code regardless. |
 | Preview | **Delay codes not chosen in the filter** | Visible, Dimmed or Hidden. Applies to the preview's Codes column while the Delay codes filter is narrowed; also on View > **Codes not chosen**. The workbook always lists every code regardless, so its coded total keeps reconciling with the clock delay. |
 | Email | **To**, **Cc** | Filled in on every draft. Separate addresses with semicolons; anything that is not a plain address is left out with a note in the status bar. |

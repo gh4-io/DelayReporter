@@ -10,9 +10,9 @@ namespace DelayReporter.Core
     /// A named set of report filters. The date range is never part of one, because it
     /// belongs to the file rather than to the way a station reports.
     ///
-    /// Every list follows the filter convention: empty means no restriction. An empty
-    /// movement type list means the file's flight types, the same default a freshly opened
-    /// file gets, so ground runs and tows stay out unless a preset asks for them by name.
+    /// Every list follows the filter convention: empty means no restriction. A freshly opened
+    /// file starts with every movement type and tail number ticked (no restriction), the
+    /// station's own default carriers ticked under operators, and no delay codes ticked.
     /// </summary>
     public sealed class ReportPreset
     {
@@ -46,7 +46,7 @@ namespace DelayReporter.Core
         {
             if (Is(name, EveryCodedDelay)) return "Every flight carrying a delay code, however short, with no other filter";
             if (Is(name, OverAnHour)) return "Flights that left an hour or more late by the clock, with no other filter";
-            return "The default: 15 minutes of included delay codes, flight movements only, no other filter";
+            return "The default: 15 minutes of included delay codes, no other filter";
         }
 
         public static ReportPreset? Build(string name)

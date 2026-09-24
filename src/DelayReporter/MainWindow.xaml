@@ -375,8 +375,6 @@
                             <TextBlock Text="Station" Style="{StaticResource GroupLabel}" />
                             <!-- Editable, so a station absent from the loaded file can still be typed. -->
                             <ComboBox x:Name="StationBox" IsEditable="True" Text="CVG" AutomationProperties.Name="Station" />
-                            <TextBlock x:Name="StationHint" Style="{StaticResource Hint}" Margin="2,4,0,0"
-                                       Text="Departures from this station are reported." />
 
                             <!-- One row: the minutes, with steppers, and what they are measured against. -->
                             <TextBlock Text="Minimum delay" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
@@ -461,8 +459,6 @@
                             <TextBlock Text="Movement types" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
                             <controls:MultiSelectDropdown x:Name="MovementTypeFilter" SelectionChanged="OnOptionChanged"
                                                           AutomationProperties.Name="Movement types" />
-                            <TextBlock Style="{StaticResource Hint}" Margin="2,4,0,0"
-                                       Text="Ground runs and tows start unticked." />
 
                             <TextBlock Text="Operators" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
                             <controls:MultiSelectDropdown x:Name="OperatorFilter" SelectionChanged="OnOptionChanged"
@@ -471,14 +467,10 @@
                             <TextBlock Text="Delay codes" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
                             <controls:MultiSelectDropdown x:Name="DelayCodeFilter" SelectionChanged="OnOptionChanged"
                                                           AutomationProperties.Name="Delay codes" />
-                            <TextBlock Style="{StaticResource Hint}" Margin="2,4,0,0"
-                                       Text="Codes found in this file. All reports every code." />
 
                             <TextBlock Text="Tail numbers" Style="{StaticResource GroupLabel}" Margin="2,16,0,6" />
                             <controls:MultiSelectDropdown x:Name="RegistrationFilter" SelectionChanged="OnOptionChanged"
                                                           AutomationProperties.Name="Tail numbers" />
-                            <TextBlock Style="{StaticResource Hint}" Margin="2,4,0,0"
-                                       Text="All reports every aircraft." />
                         </StackPanel>
                     </ScrollViewer>
                 </DockPanel>

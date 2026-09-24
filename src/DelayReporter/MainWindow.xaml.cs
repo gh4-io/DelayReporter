@@ -207,7 +207,7 @@ namespace DelayReporter
 
             _optionsWidth = Math.Max(MinimumOptionsWidth, _settings.Get(KeyOptionsWidth, (int)DefaultOptionsWidth));
             SetOptionsPane(_settings.Get(KeyOptionsPane, true));
-            _dateFormat = _settings.Get(KeyDateFormat, string.Empty);
+            _dateFormat = _settings.Get(KeyDateFormat, "dd MMM yyyy");
             ApplyDatePickerFormat();
             SizeOperatorColumn();
             _loading = false;
@@ -445,7 +445,6 @@ namespace DelayReporter
                 string station = StationBox.Text;
                 StationBox.ItemsSource = null;
                 StationBox.Text = station;
-                StationHint.Text = "Departures from this station are reported.";
 
                 DateFromPicker.SelectedDate = null;
                 DateToPicker.SelectedDate = null;
@@ -476,24 +475,25 @@ namespace DelayReporter
             StationBox.Text = station;
         }
 
-        private void BuildMovementTypes(MovementSheet sheet)
-        {
-            var defaults = new HashSet<string>(ReportOptions.DefaultMovementTypes(sheet),
-                                               StringComparer.OrdinalIgnoreCase);
+        // Every station's own carriers, ticked by default so a freshly opened file starts
+        // narrowed to them; a file with none of these present falls back to unrestricted.
+        private static readonly HashSet<string> DefaultOperatorCodes = new HashSet<string>(
+            new[] { "S3", "CJT", "CKS", "CSB", "DHK", "KII", "SIA" }, StringComparer.OrdinalIgnoreCase);
 
+        private void BuildMovementTypes(MovementSheet sheet) =>
             MovementTypeFilter.ItemsSource = sheet.MovementTypes
-                .Select(type => new MultiSelectItem(type, type, defaults.Contains(type))
+                .Select(type => new MultiSelectItem(type, type, isSelected: true)
                 {
                     ToolTip = ReportOptions.IsFlightType(type)
                         ? "Flight movements"
                         : "Ground runs and tows carry no departure or delay codes",
                 })
                 .ToList();
-        }
 
         private void BuildOperators(MovementSheet sheet) =>
             OperatorFilter.ItemsSource = sheet.Operators
-                .Select(op => new MultiSelectItem(op, WithLabel(op, _mappings.Operators), isSelected: true))
+                .Select(op => new MultiSelectItem(op, WithLabel(op, _mappings.Operators),
+                                                   isSelected: DefaultOperatorCodes.Contains(op)))
                 .ToList();
 
         // Delay codes and tail numbers start with nothing ticked, which like the empty text
@@ -585,11 +585,6 @@ namespace DelayReporter
 
             _model = ReportBuilder.Build(_sheet, _mappings, CurrentOptions());
             RefreshList();
-
-            StationHint.Text = _sheet.DetectedStation.Length > 0
-                ? $"Most rows in this file depart from {_sheet.DetectedStation} " +
-                  $"({_sheet.DetectedStationRowCount} of {_sheet.Rows.Count})."
-                : "Departures from this station are reported.";
 
             ShowWarnings(_model.Warnings);
 
@@ -1399,23 +1394,14 @@ namespace DelayReporter
                 MxFilter = options.MxFilter,
             };
 
-            // The file's own default saves as nothing, so the preset follows each file's flight
-            // types. Anything else is saved by name, including every type when all are ticked.
-            if (_sheet != null && !IsDefaultMovementTypes(_sheet))
-            {
-                preset.MovementTypes.AddRange(MovementTypeFilter.IsUnrestricted
-                    ? _sheet.MovementTypes
-                    : MovementTypeFilter.SelectedValues);
-            }
+            // Nothing or everything ticked saves as nothing, meaning no restriction, the same
+            // convention every one of the four lists follows.
+            preset.MovementTypes.AddRange(MovementTypeFilter.FilterValues);
             preset.Operators.AddRange(OperatorFilter.FilterValues);
             preset.DelayCodes.AddRange(DelayCodeFilter.FilterValues);
             preset.Registrations.AddRange(RegistrationFilter.FilterValues);
             return preset;
         }
-
-        private bool IsDefaultMovementTypes(MovementSheet sheet) =>
-            new HashSet<string>(MovementTypeFilter.SelectedValues, StringComparer.OrdinalIgnoreCase)
-                .SetEquals(ReportOptions.DefaultMovementTypes(sheet));
 
         private void ApplyPreset(ReportPreset preset)
         {
@@ -1462,11 +1448,7 @@ namespace DelayReporter
             var notes = new List<string>();
             if (_sheet == null) return notes;
 
-            if (preset.MovementTypes.Count == 0 ||
-                !ApplyList(MovementTypeFilter, preset.MovementTypes, "movement types", notes, v => v))
-            {
-                MovementTypeFilter.SelectValues(ReportOptions.DefaultMovementTypes(_sheet));
-            }
+            ApplyList(MovementTypeFilter, preset.MovementTypes, "movement types", notes, v => v);
             ApplyList(OperatorFilter, preset.Operators, "operators", notes, v => v);
             ApplyList(DelayCodeFilter, preset.DelayCodes, "delay codes", notes, MappingTable.Normalize);
             ApplyList(RegistrationFilter, preset.Registrations, "tail numbers", notes, v => v);

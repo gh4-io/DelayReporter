@@ -276,3 +276,26 @@ Excel, and a written border would travel with its row and leave the rules scatte
 On a mismatch, the grouped layout's Delay cell shows both figures, as the preview and the email
 already did, rather than the clock figure in red alone. A report printed in black and white would
 otherwise lose the flag entirely.
+
+The Notes column was first given the classic layout's grey italic prompts. On paper they read as
+something already written, and on screen they had to be deleted before typing, so the grouped
+layout leaves the cell empty and carries the prompt as an Excel input message instead: shown while
+the cell is selected, never printed. Nothing that obliges the station is lost from the report,
+because the summary counts the flights that owe supplementary information and the email lists it.
+OPR and Aircraft are sized to the values in the report rather than to the settings, so a full
+aircraft label wraps onto the two lines a tall row already has instead of widening the column,
+and the total table width is fixed so the page scale does not move when an option does.
+
+## One email style, not a picker
+
+Ten style directions were mocked up side by side — navy and banded, monochrome, card-per-flight,
+dense grid, colour-coded by severity, and others — to choose the email's look rather than guess it.
+"Ink Minimal" (a bold rule under the header, no zebra striping, generous spacing, colour spent only
+on a reconciliation mismatch or an MX-coloured delay) was picked and shipped as the only style.
+
+A Settings switch offering all ten was considered and rejected: every future change to the email —
+a new column, a fix to what a flight owes — would need to be repeated across ten implementations or
+the untouched ones would quietly drift out of date, the same rot the classic/grouped workbook
+split is deliberately kept small enough to avoid. If a second style is ever genuinely wanted, the
+right shape is a small `EmailStyle` setting with two or three options, the same way **Workbook
+layout** offers Grouped and Classic, not a gallery of everything considered along the way.

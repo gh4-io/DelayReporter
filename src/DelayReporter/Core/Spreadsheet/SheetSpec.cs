@@ -58,6 +58,29 @@ namespace DelayReporter.Core.Spreadsheet
         GroupRule = 0,
     }
 
+    /// <summary>
+    /// A hint Excel shows beside a cell while it is selected: a data validation that restricts
+    /// nothing and carries only an input message. The cell itself stays empty, and the hint
+    /// never prints.
+    /// </summary>
+    public sealed class InputPrompt
+    {
+        /// <summary>Excel's limits: 32 characters of title, 255 of message.</summary>
+        public const int MaxTitle = 32;
+        public const int MaxText = 255;
+
+        public InputPrompt(string cell, string title, string text)
+        {
+            Cell = cell;
+            Title = title.Length > MaxTitle ? title.Substring(0, MaxTitle) : title;
+            Text = text.Length > MaxText ? text.Substring(0, MaxText - 1) + "…" : text;
+        }
+
+        public string Cell { get; }
+        public string Title { get; }
+        public string Text { get; }
+    }
+
     /// <summary>A formula rule applied over a range, styled when the formula is true.</summary>
     public sealed class ConditionalRule
     {
@@ -117,6 +140,12 @@ namespace DelayReporter.Core.Spreadsheet
         public List<string> Merges { get; } = new List<string>();
 
         public List<ConditionalRule> ConditionalRules { get; } = new List<ConditionalRule>();
+
+        public List<InputPrompt> InputPrompts { get; } = new List<InputPrompt>();
+
+        /// <summary>1-based row and 0-based column to an A1 reference: (19, 13) -> N19.</summary>
+        public static string CellName(int row, int column) =>
+            ColumnName(column) + row.ToString(CultureInfo.InvariantCulture);
 
         /// <summary>1-based row carrying the table header; also the last repeated print row.</summary>
         public int HeaderRow { get; set; }

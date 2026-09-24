@@ -16,11 +16,12 @@ namespace DelayReporter.Core.Spreadsheet
     /// application stays a single executable with no runtime dependency. The scope is
     /// deliberately just what this one report needs: text cells, a fixed style table,
     /// column widths, row heights, merges, a freeze pane, an autofilter, formula-based
-    /// conditional formatting and print setup.
+    /// conditional formatting, input-message hints and print setup.
     ///
     /// Element order inside &lt;worksheet&gt; is fixed by the OOXML schema. In particular
-    /// autoFilter must precede mergeCells, conditionalFormatting follows mergeCells, and
-    /// printOptions, pageMargins, pageSetup and headerFooter come last, in that order. Excel and other readers reject the file
+    /// autoFilter must precede mergeCells, conditionalFormatting and then dataValidations
+    /// follow mergeCells, and printOptions, pageMargins, pageSetup and headerFooter come last,
+    /// in that order. Excel and other readers reject the file
     /// outright when this is wrong.
     /// </summary>
     public static class XlsxWriter
@@ -187,8 +188,10 @@ namespace DelayReporter.Core.Spreadsheet
 
                 WriteMerges(w, sheet);
 
-                // conditionalFormatting follows mergeCells and precedes printOptions.
+                // conditionalFormatting follows mergeCells, then dataValidations, and both
+                // precede printOptions.
                 WriteConditionalRules(w, sheet);
+                WriteInputPrompts(w, sheet);
                 WritePrintSetup(w, sheet);
 
                 w.WriteEndElement();    // worksheet
@@ -322,6 +325,27 @@ namespace DelayReporter.Core.Spreadsheet
                 w.WriteEndElement();
                 w.WriteEndElement();
             }
+        }
+
+        private static void WriteInputPrompts(XmlWriter w, SheetSpec sheet)
+        {
+            if (sheet.InputPrompts.Count == 0) return;
+
+            w.WriteStartElement("dataValidations", Ns);
+            w.WriteAttributeString("count", sheet.InputPrompts.Count.ToString(CultureInfo.InvariantCulture));
+            foreach (InputPrompt prompt in sheet.InputPrompts)
+            {
+                // No type means no restriction: anything may be typed, and the cell may stay
+                // empty. Only the input message is wanted.
+                w.WriteStartElement("dataValidation", Ns);
+                w.WriteAttributeString("allowBlank", "1");
+                w.WriteAttributeString("showInputMessage", "1");
+                w.WriteAttributeString("promptTitle", prompt.Title);
+                w.WriteAttributeString("prompt", prompt.Text);
+                w.WriteAttributeString("sqref", prompt.Cell);
+                w.WriteEndElement();
+            }
+            w.WriteEndElement();
         }
 
         private static void WritePrintSetup(XmlWriter w, SheetSpec sheet)
