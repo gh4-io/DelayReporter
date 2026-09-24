@@ -26,9 +26,13 @@ All notable changes to this project are documented here. The format follows
   instead of a filled navy band, no zebra striping, wider row padding, and each flight's delay
   codes stacked with space between them rather than a tight `<br>` list. A reconciliation mismatch
   and an MX-coloured delay still print in red; colour is otherwise spent nowhere else. Its title
-  line is a uniform 16px. The table gains **OPR** and **From** columns, in the order Date, OPR,
-  Reg, Flight, From, To, STD, ATD, Delay, Codes; its **Outstanding** column is left out for now
-  (the plain text version still lists what each flight owes).
+  line is a uniform 16pt, matched to Outlook's own point-based reading rather than the smaller
+  figure a CSS pixel size reads as there. The table gains **OPR** and **From** columns, in the
+  order Date, OPR, Reg, Flight, From, To, STD, ATD, Delay, Codes; its **Outstanding** column is
+  left out for now (the plain text version still lists what each flight owes).
+- Each flight's delay codes line up in three fixed-width columns — code, duration, label — sized to
+  the longest of each actually in the report, so a two-letter code and a three-letter one still
+  leave every label starting at the same point, with clear space between all three.
 - The options pane drops its explanatory hint lines under Station, Movement types, Delay codes and
   Tail numbers, including the "most rows in this file depart from…" note; that same check still
   appears as a warning on the summary when the station setting looks wrong.

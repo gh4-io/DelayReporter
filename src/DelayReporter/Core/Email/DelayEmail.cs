@@ -111,10 +111,13 @@ namespace DelayReporter.Core.Email
             html.Append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head>");
             html.Append("<body style=\"").Append(Font).Append("font-size:10pt;color:#1A1A1A;\">");
 
-            html.Append("<p style=\"margin:0 0 4px 0;font-size:16px;font-weight:300;letter-spacing:.02em;color:")
+            // Outlook's Word engine reads font-size in points, not CSS pixels, and shows its own
+            // pt figure when a reader inspects the text; pt is used here so that figure is 16, not
+            // the 12 that "16px" (a quarter smaller, by the standard 96dpi conversion) reads as.
+            html.Append("<p style=\"margin:0 0 4px 0;font-size:16pt;font-weight:300;letter-spacing:.02em;color:")
                 .Append(Ink).Append(";\">").Append(Encode(model.Station + " departure delays"));
             string period = Period(model);
-            if (period.Length > 0) html.Append(" <span style=\"font-weight:300;color:").Append(Muted).Append(";font-size:16px;\">")
+            if (period.Length > 0) html.Append(" <span style=\"font-weight:300;color:").Append(Muted).Append(";font-size:16pt;\">")
                 .Append(Encode(period)).Append("</span>");
             html.Append("</p>");
 
@@ -135,6 +138,14 @@ namespace DelayReporter.Core.Email
 
         private static void AppendTable(StringBuilder html, ReportModel model)
         {
+            // Codes and durations vary in length ("43" vs "93B", "0:16" vs "14:00"), so the label
+            // would start at a different point on every line if the three were just run together.
+            // Sizing the code and duration columns to the longest one actually in this report keeps
+            // every label starting at the same point, without guessing a width that might not fit.
+            List<ReportDelayEvent> events = model.Flights.SelectMany(f => f.Events).ToList();
+            int codeWidth = (events.Count == 0 ? 2 : events.Max(e => e.Code.Length)) * 9 + 6;
+            int durationWidth = (events.Count == 0 ? 4 : events.Max(e => e.Duration.Length)) * 8 + 6;
+
             html.Append("<table cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;margin-top:10px;")
                 .Append(Font).Append("font-size:9.5pt;\">");
 
@@ -163,17 +174,39 @@ namespace DelayReporter.Core.Email
                 Cell(html, flight.Reconciles == false ? "<b style=\"color:" + Alert + ";\">" + delay + "</b>" : "<b>" + delay + "</b>",
                      nowrap: true);
 
-                // Each code gets its own line with room under it, rather than a tight <br> stack,
-                // so a flight with several codes still reads as a list, not a block of text.
-                string codes = string.Join(string.Empty, flight.Events.Select((e, i) =>
-                    "<div style=\"margin-top:" + (i == 0 ? "0" : "8") + "px;\">" +
-                    "<b>" + Encode(e.Code) + "</b>&nbsp;" + Encode(e.Duration) + "&nbsp; " + Encode(e.Label) + "</div>"));
-                Cell(html, codes);
+                Cell(html, CodesCell(flight, codeWidth, durationWidth));
 
                 html.Append("</tr>");
             }
 
             html.Append("</table>");
+        }
+
+        /// <summary>
+        /// A flight's codes as a small fixed-column table: code, then duration, then label, each
+        /// column wide enough for the longest value in this report, with a spacer row between
+        /// codes rather than <c>&lt;br&gt;</c>. A <c>width</c> attribute rather than a CSS width is
+        /// what Outlook's Word engine actually honours on a table cell.
+        /// </summary>
+        private static string CodesCell(ReportFlight flight, int codeWidth, int durationWidth)
+        {
+            var cell = new StringBuilder();
+            cell.Append("<table cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;\">");
+            for (int i = 0; i < flight.Events.Count; i++)
+            {
+                if (i > 0) cell.Append("<tr><td colspan=\"3\" style=\"font-size:1px;line-height:8px;\">&nbsp;</td></tr>");
+
+                ReportDelayEvent e = flight.Events[i];
+                cell.Append("<tr>");
+                cell.Append("<td width=\"").Append(codeWidth).Append("\" style=\"padding:0;white-space:nowrap;\"><b>")
+                    .Append(Encode(e.Code)).Append("</b></td>");
+                cell.Append("<td width=\"").Append(durationWidth).Append("\" style=\"padding:0 0 0 10px;white-space:nowrap;\">")
+                    .Append(Encode(e.Duration)).Append("</td>");
+                cell.Append("<td style=\"padding:0 0 0 14px;\">").Append(Encode(e.Label)).Append("</td>");
+                cell.Append("</tr>");
+            }
+            cell.Append("</table>");
+            return cell.ToString();
         }
 
         private static void Cell(StringBuilder html, string content, bool nowrap = false)
