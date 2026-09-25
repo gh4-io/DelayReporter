@@ -1,0 +1,92 @@
+# Publishes Delay Reporter from `main`. It reads <Version> from main's project file; when that
+# version has no release yet, it builds and tests main through ci.yml and publishes the tested
+# executable as release v<version>, tagged on the commit it tested, with
+# docs/releases/v<version>.md as its notes and a SHA-256 hash beside it. When the version is
+# already released it stops after the check, so a nightly run costs a few seconds.
+#
+# Like ci.yml, this file lives on the `workflows` branch, which must be the repository's default
+# branch: GitHub only runs scheduled workflows, and only offers Run workflow, from there.
+name: Release
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Nightly, so a version bump merged to main is released by the next morning without a click.
+    - cron: '17 3 * * *'
+
+# Two runs in quick succession must not race to create the same release.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check main's version
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.version.outputs.sha }}
+      version: ${{ steps.version.outputs.version }}
+      exists: ${{ steps.version.outputs.exists }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Read the version
+        id: version
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/DelayReporter/DelayReporter.csproj | head -n 1)
+          if [ -z "$version" ]; then echo "No <Version> in main's project file." >&2; exit 1; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::v$version is already released. Bump <Version> on main to publish a new release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify:
+    needs: check
+    if: needs.check.outputs.exists == 'false'
+    uses: ./.github/workflows/ci.yml
+    with:
+      # The commit read above, not "main", so the release is tagged on exactly what was tested.
+      ref: ${{ needs.check.outputs.sha }}
+
+  release:
+    name: Publish release
+    needs: [check, verify]
+    if: needs.check.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.sha }}
+
+      - name: Fetch the tested executable
+        uses: actions/download-artifact@v4
+        with:
+          name: DelayReporter
+          path: dist
+
+      - name: Publish
+        run: |
+          version='${{ needs.check.outputs.version }}'
+          sha='${{ needs.check.outputs.sha }}'
+          cd dist
+          sha256sum DelayReporter.exe > DelayReporter.exe.sha256
+          cat DelayReporter.exe.sha256
+          gh release create "v$version" DelayReporter.exe DelayReporter.exe.sha256 \
+            --target "$sha" \
+            --title "Delay Reporter v$version" \
+            --notes-file "../docs/releases/v$version.md"
