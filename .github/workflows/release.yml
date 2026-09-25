@@ -1,0 +1,65 @@
+# Every push to main is built and tested by ci.yml. When the version in the project file has
+# no release yet, the tested executable is published as a GitHub release, tagged v<version>,
+# with docs/releases/v<version>.md as its notes and a SHA-256 hash beside it. A push that does
+# not change the version is still built and tested, and releases nothing.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Two pushes in quick succession must not race to create the same release.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  release:
+    name: Publish release
+    needs: verify
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the version
+        id: version
+        run: |
+          version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/DelayReporter/DelayReporter.csproj | head -n 1)
+          if [ -z "$version" ]; then echo "No <Version> in the project file." >&2; exit 1; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::v$version is already released; bump <Version> to publish a new release."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch the tested executable
+        if: steps.version.outputs.exists == 'false'
+        uses: actions/download-artifact@v4
+        with:
+          name: DelayReporter
+          path: dist
+
+      - name: Publish
+        if: steps.version.outputs.exists == 'false'
+        run: |
+          version='${{ steps.version.outputs.version }}'
+          cd dist
+          sha256sum DelayReporter.exe > DelayReporter.exe.sha256
+          cat DelayReporter.exe.sha256
+          gh release create "v$version" DelayReporter.exe DelayReporter.exe.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "Delay Reporter v$version" \
+            --notes-file "../docs/releases/v$version.md"

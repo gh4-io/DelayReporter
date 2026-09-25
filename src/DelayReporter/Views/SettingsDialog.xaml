@@ -1,0 +1,296 @@
+<Window x:Class="DelayReporter.Views.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings"
+        Width="800" Height="560"
+        MinWidth="640" MinHeight="440"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{StaticResource WindowBrush}"
+        FontFamily="{StaticResource UiFont}"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <!--
+      Laid out like Outlook's settings: categories down the left, one page of setting cards on
+      the right, on and off choices as sliding switches. Nothing applies until Save.
+    -->
+    <DockPanel>
+
+        <Border DockPanel.Dock="Bottom"
+                Background="{StaticResource CardBrush}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="18,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Save" Style="{StaticResource AccentButton}" Width="88" Margin="0,0,8,0"
+                        IsDefault="True" Click="OnOk" />
+                <Button Content="Cancel" Width="88" IsCancel="True" />
+            </StackPanel>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="210" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Categories -->
+            <Border Background="{StaticResource SubtleBrush}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <DockPanel Margin="10,18,10,10">
+                    <TextBlock DockPanel.Dock="Top" Text="Settings" Style="{StaticResource SettingPageTitle}"
+                               Margin="12,0,0,12" />
+                    <ListBox x:Name="Nav" Style="{StaticResource NavList}" ItemContainerStyle="{StaticResource NavItem}"
+                             SelectionChanged="OnNavChanged" AutomationProperties.Name="Setting categories">
+                        <ListBoxItem Tag="ReportPage" AutomationProperties.Name="Report">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE9F9;" Style="{StaticResource IconGlyph}" FontSize="16"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Report" FontSize="12.5" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="PreviewPage" AutomationProperties.Name="Preview">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE8FD;" Style="{StaticResource IconGlyph}" FontSize="16"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Preview" FontSize="12.5" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="EmailPage" AutomationProperties.Name="Email">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE715;" Style="{StaticResource IconGlyph}" FontSize="16"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Email" FontSize="12.5" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="SummaryPage" AutomationProperties.Name="Summary">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE9D2;" Style="{StaticResource IconGlyph}" FontSize="16"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Summary" FontSize="12.5" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="DataPage" AutomationProperties.Name="Data">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE838;" Style="{StaticResource IconGlyph}" FontSize="16"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Data" FontSize="12.5" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </ListBoxItem>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Pages -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                <Grid Margin="28,18,28,20">
+
+                    <!-- Report -->
+                    <StackPanel x:Name="ReportPage">
+                        <TextBlock Text="Report" Style="{StaticResource SettingPageTitle}" />
+                        <TextBlock Style="{StaticResource GroupLabel}"
+                                   Text="These change how the preview, the workbook and the email all read." />
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <StackPanel>
+                                <TextBlock Text="Workbook layout" Style="{StaticResource SettingTitle}" />
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,8"
+                                           Text="How the saved workbook looks. Both print the same flights, columns and summary." />
+                                <RadioButton x:Name="LayoutGroupedRadio" GroupName="Layout"
+                                             Content="Grouped: tall rows in fives, room to write, no boxes" />
+                                <RadioButton x:Name="LayoutClassicRadio" GroupName="Layout"
+                                             Content="Classic: the boxed layout used up to 0.3.1" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Show the carrier name in the OPR column" Style="{StaticResource SettingTitle}" />
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                                               Text="Names come from operators.csv. Off shows the raw operator code." />
+                                </StackPanel>
+                                <CheckBox x:Name="OperatorLabelsCheck" Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                          VerticalAlignment="Center"
+                                          AutomationProperties.Name="Show the carrier name in the OPR column" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Date format" Style="{StaticResource SettingTitle}" />
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                                               Text="How the Date column prints, in the preview, the workbook and the email. Also on the Date heading's right-click menu." />
+                                </StackPanel>
+                                <ComboBox x:Name="DateFormatBox" Grid.Column="1" Width="170" VerticalAlignment="Center"
+                                          AutomationProperties.Name="Date format">
+                                    <ComboBoxItem Tag="" Content="As in the file" />
+                                    <ComboBoxItem Tag="dd.MM.yyyy" Content="14.09.2026" />
+                                    <ComboBoxItem Tag="dd/MM/yyyy" Content="14/09/2026" />
+                                    <ComboBoxItem Tag="MM/dd/yyyy" Content="09/14/2026" />
+                                    <ComboBoxItem Tag="yyyy-MM-dd" Content="2026-09-14" />
+                                    <ComboBoxItem Tag="dd MMM yyyy" Content="14 Sep 2026" />
+                                </ComboBox>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <StackPanel>
+                                <TextBlock Text="Aircraft" Style="{StaticResource SettingTitle}" />
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,8"
+                                           Text="How much of a mapped aircraft label the workbook prints. Types missing from aircraft-types.csv always show their EQP code." />
+                                <RadioButton x:Name="AircraftFamilyRadio" GroupName="Aircraft" Content="Min, e.g. 767" />
+                                <RadioButton x:Name="AircraftVariantRadio" GroupName="Aircraft" Content="Std, e.g. 767-300" />
+                                <RadioButton x:Name="AircraftFullRadio" GroupName="Aircraft" Content="Full, e.g. Boeing 767-300 Freighter" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Preview -->
+                    <StackPanel x:Name="PreviewPage" Visibility="Collapsed">
+                        <TextBlock Text="Preview" Style="{StaticResource SettingPageTitle}" />
+                        <TextBlock Style="{StaticResource GroupLabel}"
+                                   Text="These change the flight list on screen only. The workbook is never affected." />
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <StackPanel>
+                                <TextBlock Text="Delay codes not chosen in the filter" Style="{StaticResource SettingTitle}" />
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,8"
+                                           Text="Applies to the Codes column while the Delay codes filter is narrowed. The workbook always lists every code, so its coded total still adds up." />
+                                <RadioButton x:Name="CodesVisibleRadio" GroupName="Codes" Content="Visible" />
+                                <RadioButton x:Name="CodesDimmedRadio" GroupName="Codes" Content="Dimmed" />
+                                <RadioButton x:Name="CodesHiddenRadio" GroupName="Codes" Content="Hidden" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Email -->
+                    <StackPanel x:Name="EmailPage" Visibility="Collapsed">
+                        <TextBlock Text="Email" Style="{StaticResource SettingPageTitle}" />
+                        <TextBlock Style="{StaticResource GroupLabel}" TextWrapping="Wrap"
+                                   Text="Send email opens a draft for you to review. Nothing is sent until you press Send there." />
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <StackPanel>
+                                <TextBlock Text="Send with" Style="{StaticResource SettingTitle}" />
+                                <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,8" TextWrapping="Wrap"
+                                           Text="Outlook in the browser opens a new message with the recipients and subject filled in. It cannot take a formatted body or an attachment from another app, so the table is put on the clipboard for you to paste with Ctrl+V, and the workbook is saved and shown in its folder for you to drag in." />
+                                <RadioButton x:Name="SendMailAppRadio" GroupName="SendWith"
+                                             Content="Default mail app, such as Outlook or Mail" />
+                                <RadioButton x:Name="SendOutlookWebRadio" GroupName="SendWith"
+                                             Content="Outlook on the web, for a work or school account (outlook.office.com)" />
+                                <RadioButton x:Name="SendOutlookComRadio" GroupName="SendWith"
+                                             Content="Outlook.com, for a personal account (outlook.live.com)" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Grid.ColumnSpan="2" Text="Recipients" Style="{StaticResource SettingTitle}" />
+                                <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Hint}" Margin="0,3,0,10"
+                                           Text="Filled in on every draft. Separate addresses with semicolons; either can be left empty and added in the mail app." />
+
+                                <TextBlock Grid.Row="2" Text="To" Style="{StaticResource SecondaryText}"
+                                           VerticalAlignment="Center" Margin="0,0,14,6" />
+                                <TextBox x:Name="EmailToBox" Grid.Row="2" Grid.Column="1" Margin="0,0,0,6"
+                                         AutomationProperties.Name="To" />
+
+                                <TextBlock Grid.Row="3" Text="Cc" Style="{StaticResource SecondaryText}"
+                                           VerticalAlignment="Center" Margin="0,0,14,0" />
+                                <TextBox x:Name="EmailCcBox" Grid.Row="3" Grid.Column="1"
+                                         AutomationProperties.Name="Cc" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Attach the report workbook" Style="{StaticResource SettingTitle}" />
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                                               Text="The email lists the flights compactly for whoever has to act on them; the attachment is the full, printable record with its summary and notes column." />
+                                </StackPanel>
+                                <CheckBox x:Name="AttachWorkbookCheck" Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                          VerticalAlignment="Center"
+                                          AutomationProperties.Name="Attach the report workbook" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Summary -->
+                    <StackPanel x:Name="SummaryPage" Visibility="Collapsed">
+                        <TextBlock Text="Summary" Style="{StaticResource SettingPageTitle}" />
+                        <TextBlock Style="{StaticResource GroupLabel}"
+                                   Text="What the summary says, in the status bar, the workbook and the email." />
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Show additional debug data" Style="{StaticResource SettingTitle}" />
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,3,0,0"
+                                               Text="Adds a detail line to the workbook's summary with every exclusion, mapping and reconciliation count. On screen the same detail is always there: hover over the summary in the status bar." />
+                                </StackPanel>
+                                <CheckBox x:Name="DebugSummaryCheck" Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                          VerticalAlignment="Center"
+                                          AutomationProperties.Name="Show additional debug data" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Data -->
+                    <StackPanel x:Name="DataPage" Visibility="Collapsed">
+                        <TextBlock Text="Data" Style="{StaticResource SettingPageTitle}" />
+                        <TextBlock Style="{StaticResource GroupLabel}" TextWrapping="Wrap"
+                                   Text="Everything Delay Reporter keeps lives in one folder under your Windows profile. Nothing is written anywhere else." />
+
+                        <Border Style="{StaticResource SettingCard}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Data folder" Style="{StaticResource SettingTitle}" />
+                                    <TextBlock x:Name="DataFolderText" Style="{StaticResource MonoText}" Margin="0,4,0,6"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="mappings holds delay-codes.csv, aircraft-types.csv and operators.csv, which you edit to name codes, carriers and aircraft; they are never overwritten. presets holds your saved presets, and settings.txt these settings. Deleting any of them restores its defaults." />
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="Open folder" VerticalAlignment="Top" Click="OnOpenDataFolder" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</Window>
