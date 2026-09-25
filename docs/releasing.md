@@ -59,20 +59,27 @@ same release needs no version change.
 
 ## Releasing from GitHub
 
-Merging the release commit to `main` does steps 5, 6 and the version check below on a Windows
-runner, then publishes the result: `.github/workflows/release.yml` calls `ci.yml` to build and
-test, and when no release `v<version>` exists yet it creates one from that same commit, attaching
-the tested `DelayReporter.exe` and its `DelayReporter.exe.sha256`, with
-`docs/releases/v<version>.md` as the notes. The executable is the one the tests ran against, so the
-hash in the release stands in for step 8.
+The workflows live on the `workflows` branch, which is the repository's default branch, so `main`
+carries the application alone. A push to `main` therefore starts nothing by itself: a workflow only
+runs on a push to a branch whose own commits hold the workflow file, and GitHub only runs scheduled
+workflows, and only offers Run workflow, from the default branch.
+
+**Release** runs nightly and from Actions > Release > Run workflow. It reads `<Version>` from
+`main`, and when no release `v<version>` exists yet it does steps 5, 6 and the version check below
+on a Windows runner by calling **CI** on that exact commit, then publishes: release `v<version>`,
+tagged on the commit it tested, with the tested `DelayReporter.exe`, its `DelayReporter.exe.sha256`,
+and `docs/releases/v<version>.md` as the notes. The executable is the one the tests ran against, so
+the hash in the release stands in for step 8. When the version is already released, the run stops
+after the check.
 
 Steps 1 to 4 and step 7 remain yours: the workflow cannot bump the version, write the notes, or
-look at the window and the workbook. A push to `main` that leaves `<Version>` unchanged is built
-and tested and releases nothing, so a release happens only when a commit asks for one. To publish
-again under the same number, delete the release and its tag on GitHub, then re-run the workflow.
+look at the window and the workbook. A release happens only when `main` asks for one with a new
+version; merge the release commit and run Release, or leave it for the nightly run. To publish
+again under the same number, delete the release and its tag on GitHub, then run Release again.
 
-Every other branch and every pull request runs `ci.yml` alone. Its run page keeps the tested
-executable as the `DelayReporter` artifact for 30 days, for trying a change before it is merged.
+To test any branch, tag or commit without releasing, run Actions > CI > Run workflow and name it.
+Its run page keeps the tested executable as the `DelayReporter` artifact for 30 days, for trying a
+change before it is merged. Changes to the workflows themselves are made on the `workflows` branch.
 
 ## Verifying the version fields
 

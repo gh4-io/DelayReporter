@@ -43,9 +43,11 @@ src/DelayReporter/Core/      no WPF reference, ever
 src/DelayReporter/           WPF shell: window, views, controls, themes
   Themes/        Fluent.xaml and Shell.xaml match the siblings byte for byte; Report.xaml is ours
 tools/                       PowerShell checks, in place of a test framework
-.github/workflows/           ci.yml builds and runs the checks on Windows; release.yml publishes from main
 docs/                        architecture, decisions, format notes, release process
 ```
+
+The GitHub Actions workflows are not on this branch. They live on the `workflows` branch (the
+repository's default branch), which holds nothing else; see "Building and testing" below.
 
 `Core` never references WPF. The UI binds to `ReportOptions` and displays the `ReportModel` that
 will be written, so the preview and the saved workbook cannot disagree. The pipeline and the
@@ -112,20 +114,25 @@ station's departure and the totals footer. Add a check there for any change to `
 `tools/check-repo.ps1` checks hygiene: no binaries, no real operator codes in the sample, and
 version numbers in step across the project file, manifest, README, changelog and release notes.
 
-An agent without Windows cannot run either script. Push to a branch instead: GitHub Actions
-(`.github/workflows/ci.yml`) builds and runs both on a Windows runner for every push and pull
-request, and its result is the verification. Neither the scripts nor CI can drive the window or
-open a workbook in Excel, so say plainly when a change has not been looked at in the running app.
+An agent without Windows cannot run either script. Push the change to a branch and run the **CI**
+workflow against it instead (Actions > CI > Run workflow, naming the branch, or a
+`workflow_dispatch` through the GitHub API with input `ref`): it builds and runs both on a Windows
+runner, and its result is the verification. A push alone runs nothing, because the workflows live
+on the `workflows` branch rather than beside the code. Neither the scripts nor CI can drive the
+window or open a workbook in Excel, so say plainly when a change has not been looked at in the
+running app.
 
 ## Git and releases
 
-- `main` is the only long-lived branch and the one releases come from. Work on a short-lived branch
-  and merge it to `main` once CI is green.
+- `main` holds the application and is the branch releases come from. `workflows` holds only the
+  GitHub Actions workflows and is the default branch; never merge one into the other, and never add
+  `.github/` to `main`. Work on a short-lived branch and merge it to `main` once CI is green.
 - Never commit binaries, build output (`bin/`, `obj/`, `dist/`), workbooks or real movement sheets.
   Text files are stored with LF endings, except `*.csv` and `*.ps1` (CRLF), as `.gitattributes`
   sets.
-- A push to `main` whose `<Version>` has no release yet publishes the tested executable as release
-  `v<version>`. Bumping the version is therefore the release decision: follow
+- The **Release** workflow (nightly, or run by hand) publishes `main` as release `v<version>`
+  whenever `main`'s `<Version>` has no release yet. Bumping the version is therefore the release
+  decision: follow
   [docs/releasing.md](../docs/releasing.md) for every field that must move with it.
 - Record anything a user would notice in [CHANGELOG.md](../CHANGELOG.md), and anything worth
   explaining in [docs/decisions.md](../docs/decisions.md), keeping past entries intact.

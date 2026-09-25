@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The GitHub Actions workflows moved to their own `workflows` branch, now the default branch, so
+  `main` holds the application alone. **CI** is run by hand against any branch, tag or commit, and
+  **Release** runs nightly and by hand, publishing `main` whenever its version has no release yet.
+  A push to `main` no longer starts a build by itself.
+
 ## [0.4.1] - 2026-09-25
 
 ### Added

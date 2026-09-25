@@ -269,14 +269,16 @@ checklist a tagged release goes through, including the dist copy and hash verifi
 
 ### GitHub Actions
 
-The same checks run on GitHub. **CI** (`.github/workflows/ci.yml`) builds the executable on
-Windows for every push to a branch other than `main` and every pull request, runs both scripts and
-the version field check, and keeps the tested `DelayReporter.exe` as a downloadable artifact of
-the run. **Release** (`.github/workflows/release.yml`) runs CI for every push to `main`; when the
-project's `<Version>` has no release yet, it publishes that same tested executable as the release
-`v<version>`, with `docs/releases/v<version>.md` as its notes and a SHA-256 hash beside it. A push
-to `main` that leaves the version alone is still tested and releases nothing. Neither can drive the
-window or open a workbook in Excel, so looking at both stays part of every release.
+The same checks run on GitHub. The workflows live on their own
+[`workflows`](https://github.com/gh4-io/DelayReporter/tree/workflows) branch, the repository's
+default branch, so `main` holds the application alone and a push to it starts nothing by itself.
+**CI** is run by hand from the Actions tab against any branch, tag or commit: it builds the
+executable on Windows, runs both scripts and the version field check, and keeps the tested
+`DelayReporter.exe` as a downloadable artifact of the run. **Release** runs nightly and by hand. It
+reads `<Version>` from `main`; when that version has no release yet, it runs CI on that commit and
+publishes the tested executable as the release `v<version>`, with `docs/releases/v<version>.md` as
+its notes and a SHA-256 hash beside it. Neither can drive the window or open a workbook in Excel,
+so looking at both stays part of every release.
 
 The only package reference is the pinned build-time reference assemblies package. The runtime
 target stays `net48` and the executable uses the .NET Framework supplied by Windows.

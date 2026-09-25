@@ -351,3 +351,16 @@ Releasing is where it earns its keep. The release job publishes the very executa
 ran against, with its hash, instead of one rebuilt by hand afterwards, and it releases only when
 `<Version>` names a release that does not exist yet. The version bump stays a deliberate edit in a
 commit, which is where the release decision already lived.
+
+## Workflows on their own branch
+
+The workflows moved off `main` onto a `workflows` branch that holds nothing else, so the branch the
+application is released from carries the application alone. That has a cost, accepted
+deliberately: GitHub runs a push-triggered workflow from the file in the pushed commit, so with no
+workflow files on `main` a push there starts nothing. Scheduled runs and the Run workflow button
+come from the default branch, so `workflows` is the default branch.
+
+CI is therefore run by hand, naming the branch, tag or commit to test, and Release runs nightly as
+well as by hand. Release first reads `main`'s version on a cheap Linux runner and stops there when
+that version is already released, so the nightly run costs seconds unless a release is due; when
+one is, it tests and tags the exact commit it read, so what is published is still what was tested.
