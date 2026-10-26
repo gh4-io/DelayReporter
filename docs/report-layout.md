@@ -36,7 +36,12 @@ filled bands. Two clear rows separate it from the table, whose header row moves 
 length. Only the header row repeats when printed. The pane is frozen below it, and it carries an
 autofilter, whose buttons show on screen but never print.
 
+All text from row 5 onward is 12pt. Rows 1–3 retain their title, period and description sizes.
+
 ## Columns
+
+The widths below are the original sizing units; the writer multiplies each final column width
+by 1.2 to accommodate 12pt text and preserve the existing manual wraps.
 
 | # | Column | Width | Alignment |
 |---|---|---|---|
@@ -89,8 +94,8 @@ delay block.
 ## Row height
 
 `max(lines Ã— 13.5pt + 16pt, 36pt)`, where lines is the largest of the stacked delay lines and the
-wrapped OPR and Aircraft values. The 16pt of padding and the 36pt floor, about half an inch, leave room to write on
-even a one-code flight. Header row 24pt, title 28pt.
+wrapped OPR and Aircraft values. The 19.2pt of padding and the 43.2pt floor, about half an inch, leave room to write on
+even a one-code flight. Header row 28.8pt, summary heading 24pt, summary and detail rows 18pt; title 28pt.
 
 ## Groups of five
 
@@ -150,7 +155,7 @@ unchanged; the grouped layout's are appended after them.
 | 25 | GroupedCellWrap | Reason, OPR and Aircraft |
 | 26 | GroupedCellStack | Code |
 | 27 | GroupedCellStackRight | Dur |
-| 28 | GroupedNotes | The notes column: regular 10pt, for whatever is typed there |
+| 28 | GroupedNotes | The notes column: regular 12pt, for whatever is typed there |
 | 29 | GroupedFlag | A delay that does not reconcile |
 
 | dxf | Style | Use |

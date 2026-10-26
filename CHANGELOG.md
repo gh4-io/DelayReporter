@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-26
+
+### Changed
+
+- The grouped workbook uses 12pt text from row 5 onward, with 20% taller body rows and
+  wider columns to preserve wrapping. Titles and descriptions above the summary retain their sizes.
+- Development and workflow branches are consolidated into main.
+
 ### Changed
 
 - The GitHub Actions workflows moved to their own `workflows` branch, now the default branch, so

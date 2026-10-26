@@ -304,7 +304,7 @@ try {
     Assert ($spec.HeaderRow -gt 1) "the table header sits below the summary (row $($spec.HeaderRow))"
     AssertEqual ($model.ReportedFlights + $spec.HeaderRow) $spec.LastRow 'one row per flight'
     $firstFlight = $spec.HeaderRow + 1
-    Assert ($spec.RowHeights[$firstFlight] -ge 36) 'grouped rows are tall enough to write on'
+    Assert ($spec.RowHeights[$firstFlight] -ge 43.2) 'grouped rows are tall enough to write on'
     AssertEqual 1 $spec.ConditionalRules.Count 'a single rule groups the flights'
     AssertEqual "MOD(SUBTOTAL(103,`$B`$$($firstFlight):`$B$($firstFlight)),5)=0" $spec.ConditionalRules[0].Formula `
         'every fifth visible flight closes a group'
@@ -325,8 +325,8 @@ try {
         "the Aircraft column narrows with the Min label ($(WidthOf $narrowSpec 'Aircraft') < $(WidthOf $spec 'Aircraft'))"
     Assert ((WidthOf $narrowSpec 'Notes') -gt (WidthOf $spec 'Notes')) 'and Notes takes what it gives up'
     AssertEqual (TotalWidth $spec) (TotalWidth $narrowSpec) 'so the table prints at the same scale'
-    Assert ((WidthOf $spec 'Aircraft') -le 16) "a full aircraft label wraps to two lines rather than widening ($(WidthOf $spec 'Aircraft'))"
-    Assert ((WidthOf $spec 'OPR') -le 6) "unnamed operators keep OPR narrow ($(WidthOf $spec 'OPR'))"
+    Assert ((WidthOf $spec 'Aircraft') -le 19.2) "a full aircraft label wraps to two lines rather than widening ($(WidthOf $spec 'Aircraft'))"
+    Assert ((WidthOf $spec 'OPR') -le 7.2) "unnamed operators keep OPR narrow ($(WidthOf $spec 'OPR'))"
 
     $classicOptions = $options.Clone()
     $classicOptions.Layout = [DelayReporter.Core.Report.ReportLayout]::Classic
@@ -379,6 +379,13 @@ try {
         AssertEqual ([string]$cellStyles) $styles.styleSheet.cellXfs.count 'and the declared count agrees'
         $dxfStyles = [Enum]::GetValues([DelayReporter.Core.Spreadsheet.DifferentialStyle]).Count
         AssertEqual $dxfStyles @($styles.styleSheet.dxfs.dxf).Count 'one dxf per DifferentialStyle'
+        foreach ($styleIndex in 16..29) {
+            $fontIndex = [int]$styles.styleSheet.cellXfs.xf[$styleIndex].fontId
+            AssertEqual '12' $styles.styleSheet.fonts.font[$fontIndex].sz.val "grouped body style $styleIndex uses 12pt"
+        }
+        AssertEqual 24 $spec.RowHeights[5] 'summary heading is 20% taller'
+        AssertEqual 18 $spec.RowHeights[6] 'summary body is 20% taller'
+        AssertEqual 28.8 $spec.RowHeights[$spec.HeaderRow] 'table heading is 20% taller'
         AssertEqual ([string]$styles.styleSheet.fonts.font.Count) $styles.styleSheet.fonts.count 'the font count agrees'
         AssertEqual ([string]$styles.styleSheet.borders.border.Count) $styles.styleSheet.borders.count 'the border count agrees'
         Assert ($null -ne $xml.worksheet.pageSetup) 'and a page setup'

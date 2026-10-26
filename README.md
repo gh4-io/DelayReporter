@@ -15,7 +15,7 @@ A Windows tool that reads a movement sheet, pulls the coded departure delays out
 every code against an editable list, and writes a professional, printable Excel workbook with room
 for the station's own notes.
 
-**Version 0.4.1.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
+**Version 0.4.2.** WPF on .NET Framework 4.8. Download `DelayReporter.exe` from a published release
 or build it from source. Copy the executable anywhere and run it: there is no installer, no runtime
 to install, no companion DLL, and it never needs administrator rights. Build output and release
 binaries are not stored in Git.
@@ -214,7 +214,7 @@ down the left, on-and-off choices as sliding switches. Nothing applies until **S
 
 | Page | Setting | Effect |
 |---|---|---|
-| Report | **Workbook layout** | **Grouped**, the default: black on white, tall rows centred vertically, flights in groups of five under a thin rule, and an empty Notes column to write in. OPR and Aircraft are sized to what they hold, so a shorter aircraft label or raw operator codes give Notes more room. **Classic**: the boxed, blue-banded layout used up to 0.3.1, kept unchanged for comparison. Both write the same flights, columns and summary. See [report layout](docs/report-layout.md). |
+| Report | **Workbook layout** | **Grouped**, the default: black on white, 12pt body text from row 5 onward, 20% taller rows centred vertically, flights in groups of five under a thin rule, and an empty Notes column to write in. OPR and Aircraft are sized to what they hold, so a shorter aircraft label or raw operator codes give Notes more room. **Classic**: the boxed, blue-banded layout used up to 0.3.1, kept unchanged for comparison. Both write the same flights, columns and summary. See [report layout](docs/report-layout.md). |
 | Report | **Show the carrier name in the OPR column** | On by default. Applies to the preview, the workbook and the email. |
 | Report | **Date format** | As in the file, or one of five patterns; `14 Sep 2026` by default. Applies to the preview, the workbook and the email; also on the Date heading's right-click menu. The date pickers follow it. |
 | Report | **Aircraft** | **Min** (`767`), **Std** (`767-300`), or **Full**, the mapped label as written (`Boeing 767-300 Freighter`). Applies to the workbook's Aircraft column; an aircraft type missing from `aircraft-types.csv` always shows its raw `EQP` code regardless. |
@@ -269,9 +269,8 @@ checklist a tagged release goes through, including the dist copy and hash verifi
 
 ### GitHub Actions
 
-The same checks run on GitHub. The workflows live on their own
-[`workflows`](https://github.com/gh4-io/DelayReporter/tree/workflows) branch, the repository's
-default branch, so `main` holds the application alone and a push to it starts nothing by itself.
+The same checks run on GitHub. Workflows are consolidated in `main`; the legacy
+`workflows` branch remains available for default-branch dispatch. A push alone starts nothing.
 **CI** is run by hand from the Actions tab against any branch, tag or commit: it builds the
 executable on Windows, runs both scripts and the version field check, and keeps the tested
 `DelayReporter.exe` as a downloadable artifact of the run. **Release** runs nightly and by hand. It

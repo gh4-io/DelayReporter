@@ -14,7 +14,7 @@ namespace DelayReporter.Core.Spreadsheet
         public const string Xml =
 @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
 <styleSheet xmlns=""http://schemas.openxmlformats.org/spreadsheetml/2006/main"">
-  <fonts count=""12"">
+  <fonts count=""16"">
     <font><sz val=""11""/><name val=""Calibri""/></font>
     <font><b/><sz val=""16""/><color rgb=""FF1F3864""/><name val=""Calibri""/></font>
     <font><sz val=""10""/><color rgb=""FF595959""/><name val=""Calibri""/></font>
@@ -27,6 +27,10 @@ namespace DelayReporter.Core.Spreadsheet
     <font><b/><sz val=""16""/><color rgb=""FF000000""/><name val=""Calibri""/></font>
     <font><b/><sz val=""10""/><color rgb=""FF000000""/><name val=""Calibri""/></font>
     <font><sz val=""11""/><color rgb=""FF262626""/><name val=""Calibri""/></font>
+    <font><sz val=""12""/><name val=""Calibri""/></font>
+    <font><b/><sz val=""12""/><color rgb=""FF000000""/><name val=""Calibri""/></font>
+    <font><sz val=""12""/><color rgb=""FF595959""/><name val=""Calibri""/></font>
+    <font><b/><sz val=""12""/><color rgb=""FFC00000""/><name val=""Calibri""/></font>
   </fonts>
   <fills count=""4"">
     <fill><patternFill patternType=""none""/></fill>
@@ -63,20 +67,20 @@ namespace DelayReporter.Core.Spreadsheet
     <xf numFmtId=""0"" fontId=""9"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center""/></xf>
     <xf numFmtId=""0"" fontId=""11"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center""/></xf>
     <xf numFmtId=""0"" fontId=""2"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center""/></xf>
-    <xf numFmtId=""0"" fontId=""10"" fillId=""0"" borderId=""2"" xfId=""0"" applyFont=""1"" applyBorder=""1"" applyAlignment=""1""><alignment vertical=""bottom""/></xf>
-    <xf numFmtId=""0"" fontId=""2"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center""/></xf>
-    <xf numFmtId=""0"" fontId=""10"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center""/></xf>
-    <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center""/></xf>
-    <xf numFmtId=""0"" fontId=""10"" fillId=""0"" borderId=""2"" xfId=""0"" applyFont=""1"" applyBorder=""1"" applyAlignment=""1""><alignment vertical=""bottom"" wrapText=""1""/></xf>
-    <xf numFmtId=""0"" fontId=""10"" fillId=""0"" borderId=""2"" xfId=""0"" applyFont=""1"" applyBorder=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""bottom"" wrapText=""1""/></xf>
-    <xf numFmtId=""0"" fontId=""10"" fillId=""0"" borderId=""2"" xfId=""0"" applyFont=""1"" applyBorder=""1"" applyAlignment=""1""><alignment horizontal=""right"" vertical=""bottom"" indent=""1"" wrapText=""1""/></xf>
-    <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center""/></xf>
-    <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center""/></xf>
-    <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center"" wrapText=""1""/></xf>
-    <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center"" wrapText=""1""/></xf>
-    <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""right"" vertical=""center"" indent=""1"" wrapText=""1""/></xf>
-    <xf numFmtId=""0"" fontId=""5"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center"" wrapText=""1""/></xf>
-    <xf numFmtId=""0"" fontId=""8"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center""/></xf>
+    <xf numFmtId=""0"" fontId=""13"" fillId=""0"" borderId=""2"" xfId=""0"" applyFont=""1"" applyBorder=""1"" applyAlignment=""1""><alignment vertical=""bottom""/></xf>
+    <xf numFmtId=""0"" fontId=""14"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center""/></xf>
+    <xf numFmtId=""0"" fontId=""13"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center""/></xf>
+    <xf numFmtId=""0"" fontId=""12"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center""/></xf>
+    <xf numFmtId=""0"" fontId=""13"" fillId=""0"" borderId=""2"" xfId=""0"" applyFont=""1"" applyBorder=""1"" applyAlignment=""1""><alignment vertical=""bottom"" wrapText=""1""/></xf>
+    <xf numFmtId=""0"" fontId=""13"" fillId=""0"" borderId=""2"" xfId=""0"" applyFont=""1"" applyBorder=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""bottom"" wrapText=""1""/></xf>
+    <xf numFmtId=""0"" fontId=""13"" fillId=""0"" borderId=""2"" xfId=""0"" applyFont=""1"" applyBorder=""1"" applyAlignment=""1""><alignment horizontal=""right"" vertical=""bottom"" indent=""1"" wrapText=""1""/></xf>
+    <xf numFmtId=""0"" fontId=""12"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center""/></xf>
+    <xf numFmtId=""0"" fontId=""12"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center""/></xf>
+    <xf numFmtId=""0"" fontId=""12"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center"" wrapText=""1""/></xf>
+    <xf numFmtId=""0"" fontId=""12"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center"" wrapText=""1""/></xf>
+    <xf numFmtId=""0"" fontId=""12"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""right"" vertical=""center"" indent=""1"" wrapText=""1""/></xf>
+    <xf numFmtId=""0"" fontId=""12"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment vertical=""center"" wrapText=""1""/></xf>
+    <xf numFmtId=""0"" fontId=""15"" fillId=""0"" borderId=""0"" xfId=""0"" applyFont=""1"" applyAlignment=""1""><alignment horizontal=""center"" vertical=""center""/></xf>
   </cellXfs>
   <cellStyles count=""1""><cellStyle name=""Normal"" xfId=""0"" builtinId=""0""/></cellStyles>
   <dxfs count=""1"">

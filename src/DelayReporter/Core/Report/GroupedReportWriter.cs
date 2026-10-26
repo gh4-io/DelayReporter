@@ -58,13 +58,13 @@ namespace DelayReporter.Core.Report
         public const string PromptTitle = "Supplementary information";
 
         /// <summary>
-        /// Points per stacked line at 10pt, and the space added around the stack. The padding
+        /// Points per stacked line at 12pt, and the space added around the stack. The padding
         /// and the floor are what leave room to write: even a one-code flight gets a row about
         /// half an inch tall.
         /// </summary>
-        public const double LineHeight = 13.5;
-        public const double RowPadding = 16.0;
-        public const double MinimumRowHeight = 36.0;
+        public const double LineHeight = 16.2;
+        public const double RowPadding = 19.2;
+        public const double MinimumRowHeight = 43.2;
 
         /// <summary>Flights per group; a rule is drawn under the last flight of each.</summary>
         public const int GroupSize = 5;
@@ -98,7 +98,7 @@ namespace DelayReporter.Core.Report
             for (int c = 1; c <= ColDelay; c++) sheet.Set(SummaryHeadingRow, c, string.Empty, CellStyle.GroupedSection);
             sheet.Set(SummaryHeadingRow, ColCode, "Delay codes by time", CellStyle.GroupedSection);
             for (int c = ColCode + 1; c <= last; c++) sheet.Set(SummaryHeadingRow, c, string.Empty, CellStyle.GroupedSection);
-            sheet.SetHeight(SummaryHeadingRow, 20);
+            sheet.SetHeight(SummaryHeadingRow, 24);
 
             int summaryRows = WriteSummary(sheet, model);
 
@@ -146,6 +146,10 @@ namespace DelayReporter.Core.Report
 
             double used = sheet.Columns.Sum(c => c.Width);
             sheet.Columns.Add(new ColumnSpec("Notes", Math.Max(MinimumNotesWidth, TableWidth - used)));
+
+            // Preserve the manual wraps when body text grows from 10pt to 12pt.
+            for (int i = 0; i < sheet.Columns.Count; i++)
+                sheet.Columns[i] = new ColumnSpec(sheet.Columns[i].Header, sheet.Columns[i].Width * 1.2);
         }
 
         /// <summary>
@@ -213,7 +217,7 @@ namespace DelayReporter.Core.Report
             }
 
             int rows = Math.Max(metrics.Count, top.Count);
-            for (int i = 0; i < rows; i++) sheet.SetHeight(SummaryFirstRow + i, 15);
+            for (int i = 0; i < rows; i++) sheet.SetHeight(SummaryFirstRow + i, 18);
             if (!model.Options.ShowDebugSummary) return rows;
 
             // One row per wrapped line of the detail, full width beneath both blocks.
@@ -223,6 +227,7 @@ namespace DelayReporter.Core.Report
             sheet.Merge(first, 0, first, 2);
             for (int i = 0; i < lines.Count; i++)
             {
+                sheet.SetHeight(first + i, 18);
                 sheet.Set(first + i, 3, lines[i], CellStyle.GroupedText);
                 sheet.Merge(first + i, 3, first + i, sheet.LastColumn);
             }
@@ -240,7 +245,7 @@ namespace DelayReporter.Core.Report
                     : CellStyle.GroupedHeading;
                 sheet.Set(row, c, sheet.Columns[c].Header, style);
             }
-            sheet.SetHeight(row, 24);
+            sheet.SetHeight(row, 28.8);
         }
 
         /// <summary>Short fixed-width values read best centred under their heading.</summary>

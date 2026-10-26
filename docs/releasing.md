@@ -59,10 +59,9 @@ same release needs no version change.
 
 ## Releasing from GitHub
 
-The workflows live on the `workflows` branch, which is the repository's default branch, so `main`
-carries the application alone. A push to `main` therefore starts nothing by itself: a workflow only
-runs on a push to a branch whose own commits hold the workflow file, and GitHub only runs scheduled
-workflows, and only offers Run workflow, from the default branch.
+The workflows now live alongside the application on `main`. The legacy `workflows` branch
+remains available for default-branch dispatch until repository settings change. CI runs by manual
+dispatch or through Release; a push alone does not run it.
 
 **Release** runs nightly and from Actions > Release > Run workflow. It reads `<Version>` from
 `main`, and when no release `v<version>` exists yet it does steps 5, 6 and the version check below
@@ -79,7 +78,7 @@ again under the same number, delete the release and its tag on GitHub, then run 
 
 To test any branch, tag or commit without releasing, run Actions > CI > Run workflow and name it.
 Its run page keeps the tested executable as the `DelayReporter` artifact for 30 days, for trying a
-change before it is merged. Changes to the workflows themselves are made on the `workflows` branch.
+change before it is merged. Maintain the consolidated workflows on `main`.
 
 ## Verifying the version fields
 
