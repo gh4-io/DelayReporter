@@ -1,0 +1,81 @@
+# Builds Delay Reporter on Windows and runs the same checks a contributor runs locally:
+# tools/test-core.ps1 against the synthetic sample, tools/check-repo.ps1, and the version
+# fields from docs/releasing.md. The window itself cannot be driven here, so a look at the
+# app and the workbook in Excel stays part of every release.
+#
+# This file lives on the `workflows` branch, apart from the application, so it never runs by
+# itself on a push. Start it from the Actions tab (Run workflow) with the branch, tag or commit
+# to test; release.yml also calls it, so what a release publishes is the executable tested here.
+name: CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit of the application to build and test
+        required: true
+        default: main
+  workflow_call:
+    inputs:
+      ref:
+        description: Branch, tag or commit of the application to build and test
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test ${{ inputs.ref }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build
+        shell: powershell
+        run: |
+          dotnet build src/DelayReporter/DelayReporter.csproj -c Release -nologo
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+
+      # Windows PowerShell rather than pwsh: it runs on .NET Framework, so it can load the
+      # net48 executable the way test-core.ps1 expects.
+      - name: Core tests
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/test-core.ps1
+
+      - name: Repository checks
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-repo.ps1
+
+      - name: Version fields
+        shell: powershell
+        run: |
+          $project = [xml](Get-Content -LiteralPath src/DelayReporter/DelayReporter.csproj -Raw)
+          $release = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
+          $expected = "$release.0"
+          $manifest = [xml](Get-Content -LiteralPath src/DelayReporter/app.manifest -Raw)
+          $exe = (Resolve-Path -LiteralPath src/DelayReporter/bin/Release/net48/DelayReporter.exe).Path
+          $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
+          $assembly = [Reflection.AssemblyName]::GetAssemblyName($exe).Version.ToString()
+          $pattern = '^' + [regex]::Escape($release) + '\+build\.\d{8}\.\d{6}Z$'
+
+          if ($manifest.assembly.assemblyIdentity.version -ne $expected) { throw 'Manifest version does not match the project.' }
+          if ($assembly -ne $expected) { throw 'Assembly version does not match the project.' }
+          if ($info.FileVersion -ne $expected) { throw 'File version does not match the project.' }
+          if ($info.ProductVersion -notmatch $pattern) { throw 'Product version is missing the release or build timestamp.' }
+          Write-Output "Verified version: $($info.ProductVersion)"
+
+      - name: Keep the tested executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: DelayReporter
+          path: src/DelayReporter/bin/Release/net48/DelayReporter.exe
+          if-no-files-found: error
+          retention-days: 30
