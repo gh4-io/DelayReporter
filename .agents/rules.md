@@ -46,8 +46,8 @@ tools/                       PowerShell checks, in place of a test framework
 docs/                        architecture, decisions, format notes, release process
 ```
 
-The GitHub Actions workflows are consolidated on main alongside the application. The legacy
-workflows branch remains available for default-branch dispatch until repository settings change.
+The GitHub Actions workflows are not on this branch. They live on the `workflows` branch (the
+repository's default branch), which holds nothing else; see "Building and testing" below.
 
 `Core` never references WPF. The UI binds to `ReportOptions` and displays the `ReportModel` that
 will be written, so the preview and the saved workbook cannot disagree. The pipeline and the
@@ -117,15 +117,16 @@ version numbers in step across the project file, manifest, README, changelog and
 An agent without Windows cannot run either script. Push the change to a branch and run the **CI**
 workflow against it instead (Actions > CI > Run workflow, naming the branch, or a
 `workflow_dispatch` through the GitHub API with input `ref`): it builds and runs both on a Windows
-runner, and its result is the verification. A push alone runs nothing, because CI is dispatched manually or by the release workflow. Neither the scripts nor CI can drive the
+runner, and its result is the verification. A push alone runs nothing, because the workflows live
+on the `workflows` branch rather than beside the code. Neither the scripts nor CI can drive the
 window or open a workbook in Excel, so say plainly when a change has not been looked at in the
 running app.
 
 ## Git and releases
 
-- `main` holds the application and workflows and is the branch releases come from. All existing
-  branch histories were consolidated for v0.4.2 at the user's request. Work on a short-lived
-  branch and merge it to `main` once checks pass.
+- `main` holds the application and is the branch releases come from. `workflows` holds only the
+  GitHub Actions workflows and is the default branch; never merge one into the other, and never add
+  `.github/` to `main`. Work on a short-lived branch and merge it to `main` once CI is green.
 - Never commit binaries, build output (`bin/`, `obj/`, `dist/`), workbooks or real movement sheets.
   Text files are stored with LF endings, except `*.csv` and `*.ps1` (CRLF), as `.gitattributes`
   sets.

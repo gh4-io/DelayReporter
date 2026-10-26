@@ -365,11 +365,12 @@ well as by hand. Release first reads `main`'s version on a cheap Linux runner an
 that version is already released, so the nightly run costs seconds unless a release is due; when
 one is, it tests and tags the exact commit it read, so what is published is still what was tested.
 
-## 2026-10-26: Consolidated branches and larger workbook body
+## 2026-10-26: Larger workbook body and development history
 
-At the user's request, main incorporates the earlier development history and the standalone
-workflow branch. The newer v0.4.1 application takes precedence over the older development copy.
-This supersedes the earlier requirement to keep workflow files off main.
+Main incorporates the earlier development history. The newer v0.4.1 application takes precedence
+over the older development copy. The workflow branch was mistakenly included in that merge;
+the user clarified that it must remain separate. A corrective commit removes the workflow files
+from main without rewriting published history. The earlier workflow-isolation rule still applies.
 
 Grouped body styles use separate 12pt fonts so Classic and the title descriptions retain their
 formatting. Row metrics and final column widths scale by 1.2 to preserve the manual line alignment.

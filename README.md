@@ -269,8 +269,9 @@ checklist a tagged release goes through, including the dist copy and hash verifi
 
 ### GitHub Actions
 
-The same checks run on GitHub. Workflows are consolidated in `main`; the legacy
-`workflows` branch remains available for default-branch dispatch. A push alone starts nothing.
+The same checks run on GitHub. The workflows live on their own
+[`workflows`](https://github.com/gh4-io/DelayReporter/tree/workflows) branch, the repository's
+default branch, so `main` holds the application alone and a push to it starts nothing by itself.
 **CI** is run by hand from the Actions tab against any branch, tag or commit: it builds the
 executable on Windows, runs both scripts and the version field check, and keeps the tested
 `DelayReporter.exe` as a downloadable artifact of the run. **Release** runs nightly and by hand. It
